@@ -11,8 +11,10 @@ export default function RegisterScreen({ navigation }: any) {
             await registerUser(email, password);
             Alert.alert("Success", "Registered! Please login.");
             navigation.navigate('Login');
-        } catch (e) {
-            Alert.alert("Error", "Registration failed");
+        } catch (e: any) {
+            const message = e.response?.data?.detail || "Registration failed";
+            Alert.alert("Error", message);
+            console.log("Registration error:", e);
         }
     };
 

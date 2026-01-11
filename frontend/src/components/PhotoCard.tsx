@@ -3,7 +3,7 @@ import { View, Image, StyleSheet, Dimensions } from 'react-native';
 import { Photo } from '../types';
 
 // CHANGE THIS TO MATCH API_URL in api.ts
-const BASE_URL = 'http://192.168.1.X:8000'; 
+const BASE_URL = 'http://192.168.123.39:8000'; 
 
 interface PhotoCardProps {
     photo: Photo;
