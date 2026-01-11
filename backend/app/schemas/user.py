@@ -9,6 +9,7 @@ class UserCreate(UserBase):
     password: str
 
 class UserLogin(UserBase):
+    email: EmailStr
     password: str
 
 class UserResponse(UserBase):
