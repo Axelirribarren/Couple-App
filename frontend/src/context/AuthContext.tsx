@@ -10,7 +10,9 @@ interface AuthContextData {
     login: (token: string) => Promise<void>;
     logout: () => Promise<void>;
     refreshUser: () => Promise<void>;
+    setUser: (user: User | null) => void;
 }
+
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 
@@ -71,10 +73,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     return (
-        <AuthContext.Provider value={{ token, user, isLoading, login, logout, refreshUser }}>
+        <AuthContext.Provider value={{ token, user, isLoading, login, logout, refreshUser, setUser }}>
             {children}
         </AuthContext.Provider>
     );
+
 };
 
 export const useAuth = () => useContext(AuthContext);

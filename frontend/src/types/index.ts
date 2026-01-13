@@ -1,7 +1,9 @@
 export interface User {
     id: number;
     email: string;
-    partner_id: number | null;
+    partner_id?: number | null;
+    character?: 'owl' | 'alien' | null;
+    current_mood?: number;
     created_at: string;
 }
 
