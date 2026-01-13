@@ -12,6 +12,9 @@ class User(Base):
     password_hash = Column(String)
     partner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    character = Column(String, nullable=True) # 'owl' or 'alien'
+    current_mood = Column(Integer, default=3) # 1-5 scale
+
     
     # Partner code for linking
     link_code = Column(String, unique=True, nullable=True)

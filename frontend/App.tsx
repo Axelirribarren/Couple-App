@@ -7,6 +7,9 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import MoodScreen from './src/screens/MoodScreen';
 import PhotosScreen from './src/screens/PhotosScreen';
+import CharacterSelectionScreen from './src/screens/CharacterSelectionScreen';
+import AvatarWidget from './src/components/AvatarWidget';
+
 
 const AuthStack = createStackNavigator();
 const AppStack = createStackNavigator();
@@ -20,22 +23,29 @@ const AuthNavigator = () => (
 
 const AppNavigator = () => (
   <AppStack.Navigator>
-    <AppStack.Screen name="Home" component={HomeScreen} options={{ title: 'CoupleApp' }} />
+    <AppStack.Screen name="Home" component={HomeScreen} options={{ 
+        title: 'CoupleApp',
+        headerRight: () => <AvatarWidget />
+    }} />
     <AppStack.Screen name="Mood" component={MoodScreen} options={{ title: 'Add Entry' }} />
     <AppStack.Screen name="Photos" component={PhotosScreen} options={{ title: 'Photos' }} />
+    <AppStack.Screen name="CharacterSelection" component={CharacterSelectionScreen} options={{ headerShown: false }} />
   </AppStack.Navigator>
+
 );
 
 const RootNavigation = () => {
-    const { token, isLoading } = useAuth();
+    const { token, isLoading, user } = useAuth();
 
     if (isLoading) {
-        return null; // Or a splash screen
+        return null;
     }
 
     return (
         <NavigationContainer>
-            {token ? <AppNavigator /> : <AuthNavigator />}
+            {token ? (
+                user?.character ? <AppNavigator /> : <CharacterSelectionScreen navigation={{ replace: () => {} }} /> 
+            ) : <AuthNavigator />}
         </NavigationContainer>
     );
 };

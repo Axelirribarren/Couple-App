@@ -1,12 +1,35 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Image } from 'react-native';
 
 interface MoodSelectorProps {
     value: number;
     onChange: (mood: number) => void;
+    character?: string;
 }
 
-export default function MoodSelector({ value, onChange }: MoodSelectorProps) {
+const getMoodImage = (character: string, mood: number) => {
+    const char = character || 'owl'; // Default to owl
+    if (char === 'alien') {
+        switch(mood) {
+            case 1: return require('../img/alien/alien-1.png');
+            case 2: return require('../img/alien/alien-2.png');
+            case 3: return require('../img/alien/alien-3.png');
+            case 4: return require('../img/alien/alien-4.png');
+            case 5: return require('../img/alien/alien-5.png');
+        }
+    } else {
+        switch(mood) {
+            case 1: return require('../img/owl/owl-1.png');
+            case 2: return require('../img/owl/owl-2.png');
+            case 3: return require('../img/owl/owl-3.png');
+            case 4: return require('../img/owl/owl-4.png');
+            case 5: return require('../img/owl/owl-5.png');
+        }
+    }
+    return require('../img/owl/owl-3.png');
+};
+
+export default function MoodSelector({ value, onChange, character }: MoodSelectorProps) {
     const moods = [1, 2, 3, 4, 5];
     return (
         <View style={styles.container}>
@@ -16,7 +39,7 @@ export default function MoodSelector({ value, onChange }: MoodSelectorProps) {
                     style={[styles.button, value === m && styles.selected]}
                     onPress={() => onChange(m)}
                 >
-                    <Text style={styles.text}>{m}</Text>
+                    <Image source={getMoodImage(character || 'owl', m)} style={styles.image} />
                 </TouchableOpacity>
             ))}
         </View>
@@ -30,18 +53,21 @@ const styles = StyleSheet.create({
         padding: 10,
     },
     button: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: '#eee',
+        width: 60,
+        height: 60,
+        borderRadius: 30,
         justifyContent: 'center',
         alignItems: 'center',
+        borderWidth: 2,
+        borderColor: 'transparent',
     },
     selected: {
-        backgroundColor: '#FF69B4', // HotPink
+        borderColor: '#FF69B4',
+        backgroundColor: '#FFF0F5',
     },
-    text: {
-        fontSize: 16,
-        fontWeight: 'bold',
+    image: {
+        width: 50,
+        height: 50,
+        resizeMode: 'contain',
     },
 });

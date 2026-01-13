@@ -16,6 +16,9 @@ class UserResponse(UserBase):
     id: int
     partner_id: Optional[int] = None
     created_at: datetime
+    character: Optional[str] = None
+    current_mood: Optional[int] = 3
+
 
     class Config:
         from_attributes = True
