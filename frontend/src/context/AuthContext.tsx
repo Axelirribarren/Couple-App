@@ -36,10 +36,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setUser(response.data);
             }
         } catch (e) {
-            console.log("Failed to load token", e);
+            console.log("Failed to load user", e);
+            // If token is invalid (401), clear it
+            await SecureStore.deleteItemAsync('token');
+            setToken(null);
+            setUser(null);
         } finally {
             setIsLoading(false);
         }
+
     };
 
     const login = async (newToken: string) => {

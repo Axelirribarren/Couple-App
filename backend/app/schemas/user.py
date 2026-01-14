@@ -17,6 +17,12 @@ class UserResponse(UserBase):
     partner_id: Optional[int] = None
     created_at: datetime
     character: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class UserCharacterUpdate(BaseModel):
+    character: str
     current_mood: Optional[int] = 3
 
 
