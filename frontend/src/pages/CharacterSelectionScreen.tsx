@@ -13,7 +13,7 @@ export default function CharacterSelectionScreen({ navigation }: any) {
             const res = await api.put('/users/me/character', { character: selected });
             setUser(res.data);
             // Navigate to Main or Mood
-            navigation.replace('Main'); 
+            navigation.replace('Home'); 
         } catch (e: any) {
             console.error("Save Character Error:", e.response?.data || e.message);
             Alert.alert("Error", `Could not save character selection. ${e.response?.status ? 'Status: ' + e.response.status : ''} ${e.response?.data?.detail || ''}`);
