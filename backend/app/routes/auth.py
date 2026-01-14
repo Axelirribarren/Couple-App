@@ -63,3 +63,10 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
 @router.get("/me", response_model=schemas.UserResponse)
 def read_users_me(current_user: models.User = Depends(get_current_user)):
     return current_user
+
+@router.put("/users/me/character", response_model=schemas.UserResponse)
+def update_user_character(character_update: schemas.UserCharacterUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    current_user.character = character_update.character
+    db.commit()
+    db.refresh(current_user)
+    return current_user

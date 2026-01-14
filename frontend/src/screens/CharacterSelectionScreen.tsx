@@ -14,9 +14,11 @@ export default function CharacterSelectionScreen({ navigation }: any) {
             setUser(res.data);
             // Navigate to Main or Mood
             navigation.replace('Main'); 
-        } catch (e) {
-            Alert.alert("Error", "Could not save character selection.");
+        } catch (e: any) {
+            console.error("Save Character Error:", e.response?.data || e.message);
+            Alert.alert("Error", `Could not save character selection. ${e.response?.status ? 'Status: ' + e.response.status : ''} ${e.response?.data?.detail || ''}`);
         }
+
     };
 
     return (
