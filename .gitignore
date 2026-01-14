@@ -1,21 +1,65 @@
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-
-# Virtual environments
-.venv/
-venv/
-env/
-
-# Environment variables
-.env
-
-# Databases
-*.db
-
-# Editor / OS
-.vscode/
+# General
 .DS_Store
 Thumbs.db
+*.log
+.vscode/
+.idea/
+
+# Python / Backend
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+backend/venv/
+backend/.venv/
+venv/
+.venv/
+env/
+backend/data/*.db
+*.db
+
+# Node / Frontend
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm/
+.yarn/
+frontend/.expo/
+.expo/
+frontend/web-build/
+web-build/
+frontend/dist/
+frontend/coverage/
+
+# Environment Variables & Secrets (Security)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.key
+*.pem
+*.cert
+
+# Specific Project Garbage
+frontend/%ProgramData%/
