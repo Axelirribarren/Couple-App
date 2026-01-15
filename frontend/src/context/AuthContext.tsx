@@ -50,6 +50,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const login = async (newToken: string) => {
         setIsLoading(true);
         try {
+            if (!newToken || typeof newToken !== 'string') {
+                console.error("Invalid token:", newToken);
+                return;
+            }
             await SecureStore.setItemAsync('token', newToken);
             setToken(newToken);
             const response = await api.get('/auth/me');
