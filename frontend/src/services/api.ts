@@ -1,9 +1,11 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
+// CHANGE THIS IP TO YOUR COMPUTER'S LOCAL IP
+const API_URL = 'https://new-buckets-tie.loca.lt';
 
-export const api = axios.create({
-    baseURL: 'https://lfdr3cm-axelitoow-8081.exp.direct',
+const api = axios.create({
+    baseURL: API_URL,
 });
 
 api.interceptors.request.use(

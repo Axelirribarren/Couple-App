@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, TextInput, Button, StyleSheet, Alert, Text } from 'react-native';
+import { View, TextInput, Button, StyleSheet, Alert, Text, Image } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { loginUser } from '../services/auth';
 
@@ -11,7 +11,9 @@ export default function LoginScreen({ navigation }: any) {
     const handleLogin = async () => {
         try {
             const data = await loginUser(email, password);
+            console.log("Login successful, data:", data);
             await login(data.access_token);
+
         } catch (e: any) {
             const message = e.response?.data?.detail || "Login failed";
             Alert.alert("Error", message);
@@ -21,6 +23,11 @@ export default function LoginScreen({ navigation }: any) {
 
     return (
         <View style={styles.container}>
+            <Image 
+                source={require('../../assets/icon.png')} 
+                style={styles.logo}
+                resizeMode="contain"
+            />
             <Text style={styles.title}>CoupleApp Login</Text>
             <TextInput
                 style={styles.input}
@@ -43,7 +50,8 @@ export default function LoginScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, justifyContent: 'center', padding: 20 },
+    container: { flex: 1, justifyContent: 'center', padding: 20, alignItems: 'center' },
+    logo: { width: 100, height: 100, marginBottom: 20 },
     title: { fontSize: 24, marginBottom: 20, textAlign: 'center' },
-    input: { height: 40, borderColor: 'gray', borderWidth: 1, marginBottom: 10, padding: 8, borderRadius: 5 },
+    input: { height: 40, borderColor: 'gray', borderWidth: 1, marginBottom: 10, padding: 8, borderRadius: 5, width: '100%' },
 });
