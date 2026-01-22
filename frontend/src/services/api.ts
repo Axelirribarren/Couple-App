@@ -1,8 +1,7 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-// CHANGE THIS IP TO YOUR COMPUTER'S LOCAL IP
-const API_URL = 'https://new-buckets-tie.loca.lt';
+const API_URL = 'https://quick-ghosts-play.loca.lt';
 
 const api = axios.create({
     baseURL: API_URL,
