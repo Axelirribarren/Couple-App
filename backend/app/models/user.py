@@ -21,4 +21,5 @@ class User(Base):
 
     partner = relationship("User", remote_side=[id], post_update=True)
     entries = relationship("DailyEntry", back_populates="user")
-    photos = relationship("Photo", back_populates="user")
+    checkins = relationship("CheckIn", back_populates="user")
+    tests = relationship("EmotionalTest", back_populates="user")

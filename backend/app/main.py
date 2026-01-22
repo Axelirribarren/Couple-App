@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from .database import engine, Base
-from .routes import auth, partner, entries, photos, users
+from .routes import auth, partner, entries, users, checkins, tests, timeline
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -22,8 +22,7 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(partner.router, prefix="/partner", tags=["partner"])
 app.include_router(entries.router, prefix="/entries", tags=["entries"])
-app.include_router(photos.router, prefix="/photos", tags=["photos"])
 app.include_router(users.router, prefix="/users", tags=["users"])
-
-# Static files for photos
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+app.include_router(checkins.router, prefix="/checkins", tags=["checkins"])
+app.include_router(tests.router, prefix="/tests", tags=["tests"])
+app.include_router(timeline.router, prefix="/timeline", tags=["timeline"])
