@@ -1,7 +1,7 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-const API_URL = 'https://quick-ghosts-play.loca.lt';
+const API_URL = 'http://192.168.123.39:8001';
 
 const api = axios.create({
     baseURL: API_URL,

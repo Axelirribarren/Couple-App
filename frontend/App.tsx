@@ -6,10 +6,10 @@ import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import MoodScreen from './src/screens/MoodScreen';
-import PhotosScreen from './src/screens/PhotosScreen';
 import CharacterSelectionScreen from './src/screens/CharacterSelectionScreen';
+import CheckInScreen from './src/screens/CheckInScreen';
+import TestScreen from './src/screens/TestScreen';
 import AvatarWidget from './src/components/AvatarWidget';
-
 
 const AuthStack = createStackNavigator();
 const AppStack = createStackNavigator();
@@ -27,8 +27,9 @@ const AppNavigator = () => (
         title: 'CoupleApp',
         headerRight: () => <AvatarWidget />
     }} />
-    <AppStack.Screen name="Mood" component={MoodScreen} options={{ title: 'Add Entry' }} />
-    <AppStack.Screen name="Photos" component={PhotosScreen} options={{ title: 'Photos' }} />
+    <AppStack.Screen name="Mood" component={MoodScreen} options={{ title: 'Add Mood' }} />
+    <AppStack.Screen name="CheckIn" component={CheckInScreen} options={{ title: 'Daily Check-In' }} />
+    <AppStack.Screen name="Test" component={TestScreen} options={{ title: 'Emotional Test' }} />
     <AppStack.Screen name="CharacterSelection" component={CharacterSelectionScreen} options={{ headerShown: false }} />
   </AppStack.Navigator>
 
