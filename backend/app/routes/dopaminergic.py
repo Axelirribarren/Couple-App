@@ -15,6 +15,8 @@ router = APIRouter()
 class SyncRequest(BaseModel):
     current_mood: Optional[int] = None
     streak_count: Optional[int] = None
+    karma_score: Optional[int] = None
+    increment_partner_karma: Optional[bool] = False
 
 class SparkCreate(BaseModel):
     spark_type: str
@@ -36,6 +38,8 @@ class SyncResponse(BaseModel):
     partner_id: Optional[int] = None
     partner_mood: Optional[int] = None
     streak_count: int
+    karma_score: int
+    partner_karma: int
     sparks: List[SparkResponse] = []
 
 class ShakeResponse(BaseModel):
@@ -72,6 +76,12 @@ def sync_metadata(request: SyncRequest, db: Session = Depends(get_db), current_u
         if current_user.partner:
             current_user.partner.streak_count = new_streak
 
+    if request.karma_score is not None:
+        current_user.karma_score = request.karma_score
+
+    if request.increment_partner_karma and current_user.partner:
+        current_user.partner.karma_score += 1
+
     db.commit()
 
     # Prepare response
@@ -79,6 +89,8 @@ def sync_metadata(request: SyncRequest, db: Session = Depends(get_db), current_u
         "partner_id": current_user.partner_id,
         "partner_mood": current_user.partner.current_mood if current_user.partner else None,
         "streak_count": current_user.streak_count,
+        "karma_score": current_user.karma_score,
+        "partner_karma": current_user.partner.karma_score if current_user.partner else 0,
         "sparks": []
     }
 

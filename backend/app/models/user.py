@@ -20,6 +20,7 @@ class User(Base):
     last_active = Column(DateTime, nullable=True)
     sync_token = Column(String, nullable=True)
     last_shake = Column(DateTime, nullable=True)
+    karma_score = Column(Integer, default=0) # Debt/Favors
 
     # Partner code for linking
     link_code = Column(String, unique=True, nullable=True)
