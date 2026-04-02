@@ -8,6 +8,7 @@ import AvatarWidget from '../components/AvatarWidget';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { Accelerometer } from 'expo-sensors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import plansData from '../data/plans.json';
 
 export default function HomeScreen({ navigation }: any) {
@@ -32,6 +33,85 @@ export default function HomeScreen({ navigation }: any) {
     // Termómetro Modal
     const [isKarmaModalVisible, setIsKarmaModalVisible] = useState(false);
     const [karmaInputText, setKarmaInputText] = useState('');
+
+    // Feature: Movie Mode
+    const [isMovieModeActive, setIsMovieModeActive] = useState(false);
+    const [movieChatText, setMovieChatText] = useState('');
+    const [movieChats, setMovieChats] = useState<{id: string, text: string, mine: boolean}[]>([]);
+
+    // Feature: Long Distance Mode
+    const [isLongDistanceMode, setIsLongDistanceMode] = useState(false);
+    const [reunionDate, setReunionDate] = useState<string | null>(null);
+    const [partnerTimezoneOffset, setPartnerTimezoneOffset] = useState<string | null>(null);
+    const [isReunionModalVisible, setIsReunionModalVisible] = useState(false);
+    const [reunionInput, setReunionInput] = useState('');
+    const [timezoneInput, setTimezoneInput] = useState('');
+    const [currentTimePartner, setCurrentTimePartner] = useState<string>('');
+
+    useEffect(() => {
+        const loadLDRSettings = async () => {
+            const savedDate = await AsyncStorage.getItem('reunion_date');
+            const savedTz = await AsyncStorage.getItem('partner_tz');
+            if (savedDate) {
+                setReunionDate(savedDate);
+                if (savedTz) {
+                    setPartnerTimezoneOffset(savedTz);
+                    setTimezoneInput(savedTz);
+                }
+                setIsLongDistanceMode(true);
+            }
+        };
+        loadLDRSettings();
+    }, []);
+
+    // Live clock for partner timezone
+    useEffect(() => {
+        let interval: any;
+        if (isLongDistanceMode && partnerTimezoneOffset !== null) {
+            interval = setInterval(() => {
+                const now = new Date();
+                const offsetHours = parseFloat(partnerTimezoneOffset);
+                if (!isNaN(offsetHours)) {
+                    // Convert local time to UTC, then apply partner offset
+                    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+                    const partnerTime = new Date(utc + (3600000 * offsetHours));
+                    const timeStr = partnerTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    setCurrentTimePartner(timeStr);
+                }
+            }, 1000);
+        }
+        return () => { if (interval) clearInterval(interval); };
+    }, [isLongDistanceMode, partnerTimezoneOffset]);
+
+    const setLongDistanceDate = async () => {
+        if (reunionInput) {
+            await AsyncStorage.setItem('reunion_date', reunionInput);
+            setReunionDate(reunionInput);
+            if (timezoneInput) {
+                await AsyncStorage.setItem('partner_tz', timezoneInput);
+                setPartnerTimezoneOffset(timezoneInput);
+            } else {
+                await AsyncStorage.removeItem('partner_tz');
+                setPartnerTimezoneOffset(null);
+            }
+            setIsLongDistanceMode(true);
+        } else {
+            await AsyncStorage.removeItem('reunion_date');
+            await AsyncStorage.removeItem('partner_tz');
+            setReunionDate(null);
+            setPartnerTimezoneOffset(null);
+            setIsLongDistanceMode(false);
+        }
+        setIsReunionModalVisible(false);
+    };
+
+    const sendMovieChat = async () => {
+        if (!movieChatText.trim()) return;
+        const msg = movieChatText;
+        setMovieChatText('');
+        setMovieChats(prev => [...prev, { id: Date.now().toString(), text: msg, mine: true }]);
+        await syncManager.sendSpark('movie_chat', msg);
+    };
 
     // Asymmetric Journal
     const [journalData, setJournalData] = useState<any>(null);
@@ -186,6 +266,14 @@ export default function HomeScreen({ navigation }: any) {
 
             await syncManager.consumeSpark(spark.id);
             setIncomingSparks(prev => prev.filter(s => s.id !== spark.id));
+        } else if (spark.spark_type === 'movie_chat') {
+            // Ephemeral chat spark
+            setMovieChats(prev => [...prev, { id: spark.id.toString(), text: spark.encrypted_payload, mine: false }]);
+            if (!isMovieModeActive) {
+                Alert.alert("🍿 Movie Mode", `Partner says: "${spark.encrypted_payload}"`);
+            }
+            await syncManager.consumeSpark(spark.id);
+            setIncomingSparks(prev => prev.filter(s => s.id !== spark.id));
         }
     };
 
@@ -286,6 +374,52 @@ export default function HomeScreen({ navigation }: any) {
             Alert.alert("Error", e.response?.data?.detail || "Failed to link");
         }
     };
+
+    if (isMovieModeActive) {
+        return (
+            <View style={[styles.container, { backgroundColor: '#000' }]}>
+                <Text style={{color: '#ff4500', fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center'}}>
+                    🍿 Movie Mode
+                </Text>
+                <Text style={{color: '#888', textAlign: 'center', marginBottom: 20}}>
+                    Distractions off. Just you two and the screen.
+                </Text>
+
+                <ScrollView style={{flex: 1, marginBottom: 10}}>
+                    {movieChats.map(chat => (
+                        <View key={chat.id} style={{
+                            alignSelf: chat.mine ? 'flex-end' : 'flex-start',
+                            backgroundColor: chat.mine ? '#4b0082' : '#333',
+                            padding: 10,
+                            borderRadius: 15,
+                            marginVertical: 5,
+                            maxWidth: '80%'
+                        }}>
+                            <Text style={{color: 'white'}}>{chat.text}</Text>
+                        </View>
+                    ))}
+                </ScrollView>
+
+                <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                    <TextInput
+                        style={[styles.input, {flex: 1, backgroundColor: '#222', color: 'white', borderColor: '#444', marginBottom: 0}]}
+                        placeholder="Whisper something..."
+                        placeholderTextColor="#666"
+                        value={movieChatText}
+                        onChangeText={setMovieChatText}
+                    />
+                    <TouchableOpacity onPress={sendMovieChat} style={{marginLeft: 10, backgroundColor: '#ff4500', padding: 12, borderRadius: 25}}>
+                        <Text style={{color: 'white', fontWeight: 'bold'}}>Send</Text>
+                    </TouchableOpacity>
+                </View>
+
+                <Button title="Exit Movie Mode" color="#888" onPress={() => {
+                    setIsMovieModeActive(false);
+                    setMovieChats([]); // Ephemeral chat is wiped when exiting
+                }} />
+            </View>
+        );
+    }
 
     if (!user?.partner_id) {
         return (
@@ -481,12 +615,27 @@ export default function HomeScreen({ navigation }: any) {
                 </View>
             </Modal>
 
+            {/* Long Distance Countdown Banner */}
+            {isLongDistanceMode && reunionDate && (
+                <View style={styles.ldrBanner}>
+                    <Text style={styles.ldrTitle}>Time Until We Meet ✈️</Text>
+                    <Text style={styles.ldrCountdown}>
+                        {Math.max(0, Math.ceil((new Date(reunionDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24)))} Days
+                    </Text>
+                    {partnerTimezoneOffset && (
+                        <Text style={styles.ldrClock}>
+                            Partner's Time: {currentTimePartner || '--:--'}
+                        </Text>
+                    )}
+                </View>
+            )}
+
             {/* Dopaminergic Header / Aura Avatar */}
             {/* TouchableWithoutFeedback on the header for the "Undercover Secret Signal" */}
             <TouchableOpacity
                 activeOpacity={1}
                 onPress={handleSecretTap}
-                style={styles.dopamineHeader}
+                style={[styles.dopamineHeader, isLongDistanceMode && { backgroundColor: '#ffe4e1', borderColor: '#ff69b4', borderWidth: 2 }]}
             >
                 <View style={styles.partnerAvatarContainer}>
                     <Text style={styles.partnerText}>Your Partner</Text>
@@ -561,6 +710,43 @@ export default function HomeScreen({ navigation }: any) {
                     <Text style={styles.actionBtnText}>Plan 🎲</Text>
                 </TouchableOpacity>
             </View>
+
+            <View style={[styles.actions, { marginTop: -10 }]}>
+                <TouchableOpacity style={[styles.actionBtn, {backgroundColor: '#2b2b2b'}]} onPress={() => setIsMovieModeActive(true)}>
+                    <Text style={styles.actionBtnText}>Movie Mode 🍿</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.actionBtn, {backgroundColor: isLongDistanceMode ? '#ff4500' : '#888'}]} onPress={() => setIsReunionModalVisible(true)}>
+                    <Text style={styles.actionBtnText}>{isLongDistanceMode ? 'LDR Active ✈️' : 'LDR Mode ✈️'}</Text>
+                </TouchableOpacity>
+            </View>
+
+            <Modal visible={isReunionModalVisible} animationType="fade" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.polaroidContainer}>
+                        <Text style={styles.polaroidTitle}>Long Distance Mode ✈️</Text>
+                        <Text style={{marginBottom: 10, color: '#666', textAlign: 'center'}}>When are you meeting next? (YYYY-MM-DD)</Text>
+                        <TextInput
+                            style={[styles.input, { width: '100%' }]}
+                            placeholder="e.g., 2024-12-25"
+                            value={reunionInput}
+                            onChangeText={setReunionInput}
+                        />
+                        <Text style={{marginTop: 10, marginBottom: 10, color: '#666', textAlign: 'center'}}>Partner Timezone (UTC Offset):</Text>
+                        <TextInput
+                            style={[styles.input, { width: '100%' }]}
+                            placeholder="e.g., -5, 2, 5.5"
+                            keyboardType="numeric"
+                            value={timezoneInput}
+                            onChangeText={setTimezoneInput}
+                        />
+                        <Text style={{fontSize: 12, color: '#888', marginBottom: 10}}>Leave date blank to disable LDR mode.</Text>
+                        <View style={{flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginTop: 10}}>
+                            <Button title="Cancel" color="#888" onPress={() => setIsReunionModalVisible(false)} />
+                            <Button title="Save" color="#ff4500" onPress={setLongDistanceDate} />
+                        </View>
+                    </View>
+                </View>
+            </Modal>
 
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>My Latest Entry</Text>
@@ -684,6 +870,31 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontStyle: 'italic',
         fontWeight: '500',
+    },
+    ldrBanner: {
+        backgroundColor: '#ff4500',
+        padding: 20,
+        borderRadius: 15,
+        marginBottom: 20,
+        alignItems: 'center',
+        elevation: 4,
+    },
+    ldrTitle: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+    ldrCountdown: {
+        color: 'white',
+        fontSize: 36,
+        fontWeight: '900',
+        marginTop: 5,
+    },
+    ldrClock: {
+        color: 'white',
+        fontSize: 14,
+        fontStyle: 'italic',
+        marginTop: 10,
     },
     tamagotchiContainer: {
         backgroundColor: '#e8f5e9',
