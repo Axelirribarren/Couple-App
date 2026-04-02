@@ -7,6 +7,7 @@ import { syncManager, SyncResponse } from '../services/syncManager';
 import AvatarWidget from '../components/AvatarWidget';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
+import { Accelerometer } from 'expo-sensors';
 
 export default function HomeScreen({ navigation }: any) {
     const { user, logout, refreshUser } = useAuth();
@@ -17,6 +18,72 @@ export default function HomeScreen({ navigation }: any) {
     const [syncData, setSyncData] = useState<SyncResponse | null>(null);
     const [incomingSparks, setIncomingSparks] = useState<any[]>([]);
     const [activePolaroid, setActivePolaroid] = useState<any | null>(null);
+    const [capsuleMsg, setCapsuleMsg] = useState<string | null>(null);
+    const [shakeConfetti, setShakeConfetti] = useState(false);
+
+    // Time Capsule Input Modal State
+    const [isCapsuleModalVisible, setIsCapsuleModalVisible] = useState(false);
+    const [capsuleInputText, setCapsuleInputText] = useState('');
+
+    // Feature 7: Secret Signal
+    const [tapCount, setTapCount] = useState(0);
+    const [lastTapTime, setLastTapTime] = useState(0);
+
+    const handleSecretTap = async () => {
+        const now = Date.now();
+        // If it's been more than 1 second since last tap, reset counter
+        if (now - lastTapTime > 1000) {
+            setTapCount(1);
+        } else {
+            setTapCount(prev => {
+                const newCount = prev + 1;
+                if (newCount === 3) {
+                    // Triple tap detected! Send secret signal
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                    syncManager.sendSpark('secret_signal');
+                    // Don't show any alert to keep it "undercover"
+                    return 0; // Reset
+                }
+                return newCount;
+            });
+        }
+        setLastTapTime(now);
+    };
+
+    // Feature 4: Shake to Connect
+    useEffect(() => {
+        let lastShake = 0;
+        const subscription = Accelerometer.addListener(async (accelerometerData) => {
+            const { x, y, z } = accelerometerData;
+            const acceleration = Math.sqrt(x * x + y * y + z * z);
+
+            // 2.5G threshold for a strong shake
+            if (acceleration > 2.5) {
+                const now = Date.now();
+                // Debounce shake detection (only one shake every 5 seconds)
+                if (now - lastShake > 5000) {
+                    lastShake = now;
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+
+                    const response = await syncManager.reportShake();
+                    if (response.synced) {
+                        setShakeConfetti(true);
+                        Alert.alert("✨ Magic Connection! ✨", "You and your partner shook your phones at the same time!");
+                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+                        // Hide confetti after 5 seconds
+                        setTimeout(() => setShakeConfetti(false), 5000);
+                    }
+                }
+            }
+        });
+
+        // Set update interval (fast enough to detect shakes but not drain battery instantly)
+        Accelerometer.setUpdateInterval(200);
+
+        return () => subscription.remove();
+    }, []);
+
 
     const loadData = async () => {
         try {
@@ -81,6 +148,44 @@ export default function HomeScreen({ navigation }: any) {
         } else if (spark.spark_type === 'polaroid') {
             // Display modal
             setActivePolaroid(spark);
+        } else if (spark.spark_type === 'time_capsule') {
+            // Append 'Z' to explicitly treat naive strings from backend as UTC, if missing.
+            const unlockStr = spark.unlock_at?.endsWith('Z') ? spark.unlock_at : `${spark.unlock_at}Z`;
+
+            if (unlockStr && new Date(unlockStr) > new Date()) {
+                Alert.alert("⏳ Locked", `This capsule is locked until ${new Date(unlockStr).toLocaleString()}`);
+            } else {
+                setCapsuleMsg(spark.encrypted_payload);
+                await syncManager.consumeSpark(spark.id);
+                setIncomingSparks(prev => prev.filter(s => s.id !== spark.id));
+            }
+        } else if (spark.spark_type === 'secret_signal') {
+            // Secret Signal: 3 discrete short bursts, no UI interruption
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light), 200);
+            setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light), 400);
+
+            await syncManager.consumeSpark(spark.id);
+            setIncomingSparks(prev => prev.filter(s => s.id !== spark.id));
+        }
+    };
+
+    const handleSendTimeCapsule = async () => {
+        if (!capsuleInputText.trim()) {
+            Alert.alert("Error", "Message cannot be empty.");
+            return;
+        }
+
+        setIsCapsuleModalVisible(false);
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const success = await syncManager.sendSpark('time_capsule', capsuleInputText, tomorrow.toISOString());
+        if (success) {
+            Alert.alert("Sent!", "Time capsule sent. It will unlock tomorrow.");
+            setCapsuleInputText('');
+        } else {
+            Alert.alert("Error", "Could not send time capsule.");
         }
     };
 
@@ -142,9 +247,42 @@ export default function HomeScreen({ navigation }: any) {
 
     return (
         <ScrollView 
-            contentContainerStyle={styles.scrollContainer}
+            contentContainerStyle={[styles.scrollContainer, shakeConfetti && { backgroundColor: '#ffe4e1' }]}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         >
+            {/* Time Capsule Input Modal for Cross-Platform compatibility */}
+            <Modal visible={isCapsuleModalVisible} animationType="fade" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.polaroidContainer}>
+                        <Text style={styles.polaroidTitle}>Time Capsule ⏳</Text>
+                        <Text style={{marginBottom: 10, color: '#666'}}>Write a message for your partner. It will unlock tomorrow.</Text>
+                        <TextInput
+                            style={[styles.input, { width: '100%', height: 100, textAlignVertical: 'top' }]}
+                            multiline
+                            placeholder="I hope you're having a great day..."
+                            value={capsuleInputText}
+                            onChangeText={setCapsuleInputText}
+                        />
+                        <View style={{flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginTop: 10}}>
+                            <Button title="Cancel" color="#888" onPress={() => setIsCapsuleModalVisible(false)} />
+                            <Button title="Send" color="#8a2be2" onPress={handleSendTimeCapsule} />
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            <Modal visible={!!capsuleMsg} animationType="slide" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.polaroidContainer}>
+                        <Text style={styles.polaroidTitle}>⏳ Time Capsule Unlocked!</Text>
+                        <Text style={[styles.polaroidDesc, { fontSize: 18, color: '#333' }]}>{capsuleMsg}</Text>
+                        <TouchableOpacity style={styles.polaroidCloseBtn} onPress={() => setCapsuleMsg(null)}>
+                            <Text style={styles.polaroidCloseText}>Close</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
             <Modal
                 visible={!!activePolaroid}
                 animationType="fade"
@@ -174,18 +312,29 @@ export default function HomeScreen({ navigation }: any) {
             {incomingSparks.length > 0 && (
                 <View style={styles.sparkBanner}>
                     <Text style={styles.sparkText}>✨ You have {incomingSparks.length} new spark(s)!</Text>
-                    {incomingSparks.map(spark => (
-                        <TouchableOpacity key={spark.id} style={styles.sparkButton} onPress={() => openSpark(spark)}>
-                            <Text style={styles.sparkButtonText}>
-                                {spark.spark_type === 'haptic' ? 'Feel Heartbeat 💓' : 'Open Polaroid 📸'}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
+                    {incomingSparks.map(spark => {
+                        const unlockStr = spark.unlock_at?.endsWith('Z') ? spark.unlock_at : `${spark.unlock_at}Z`;
+                        const isLocked = spark.spark_type === 'time_capsule' && unlockStr && new Date(unlockStr) > new Date();
+                        return (
+                            <TouchableOpacity key={spark.id} style={[styles.sparkButton, isLocked && { backgroundColor: '#888' }]} onPress={() => openSpark(spark)}>
+                                <Text style={styles.sparkButtonText}>
+                                    {spark.spark_type === 'haptic' ? 'Feel Heartbeat 💓' :
+                                     spark.spark_type === 'polaroid' ? 'Open Polaroid 📸' :
+                                     isLocked ? `Locked Capsule ⏳` : 'Open Capsule ✨'}
+                                </Text>
+                            </TouchableOpacity>
+                        );
+                    })}
                 </View>
             )}
 
             {/* Dopaminergic Header / Aura Avatar */}
-            <View style={styles.dopamineHeader}>
+            {/* TouchableWithoutFeedback on the header for the "Undercover Secret Signal" */}
+            <TouchableOpacity
+                activeOpacity={1}
+                onPress={handleSecretTap}
+                style={styles.dopamineHeader}
+            >
                 <View style={styles.partnerAvatarContainer}>
                     <Text style={styles.partnerText}>Your Partner</Text>
                     {syncData?.partner_mood ? (
@@ -203,17 +352,20 @@ export default function HomeScreen({ navigation }: any) {
                     <Text style={styles.streakEmoji}>🔥</Text>
                     <Text style={styles.streakText}>{syncData?.streak_count || 0} Days</Text>
                 </View>
-            </View>
+            </TouchableOpacity>
 
             <View style={styles.actions}>
                 <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('Mood')}>
-                    <Text style={styles.actionBtnText}>Update Mood</Text>
+                    <Text style={styles.actionBtnText}>Mood</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.actionBtn, styles.heartbeatBtn]} onPress={sendHapticHeartbeat}>
-                    <Text style={styles.actionBtnText}>Send Heartbeat 💓</Text>
+                    <Text style={styles.actionBtnText}>Pulse 💓</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('Photos')}>
-                    <Text style={styles.actionBtnText}>Photos</Text>
+                <TouchableOpacity style={[styles.actionBtn, {backgroundColor: '#3cb371'}]} onPress={() => navigation.navigate('StolenMoments')}>
+                    <Text style={styles.actionBtnText}>Moments 📸</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.actionBtn, {backgroundColor: '#8a2be2'}]} onPress={() => setIsCapsuleModalVisible(true)}>
+                    <Text style={styles.actionBtnText}>Capsule ⏳</Text>
                 </TouchableOpacity>
             </View>
 

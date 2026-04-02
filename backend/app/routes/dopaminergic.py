@@ -19,6 +19,7 @@ class SyncRequest(BaseModel):
 class SparkCreate(BaseModel):
     spark_type: str
     encrypted_payload: Optional[str] = None
+    unlock_at: Optional[datetime] = None
 
 class SparkResponse(BaseModel):
     id: int
@@ -26,6 +27,7 @@ class SparkResponse(BaseModel):
     spark_type: str
     encrypted_payload: Optional[str] = None
     created_at: datetime
+    unlock_at: Optional[datetime] = None
 
     class Config:
         orm_mode = True
@@ -35,6 +37,10 @@ class SyncResponse(BaseModel):
     partner_mood: Optional[int] = None
     streak_count: int
     sparks: List[SparkResponse] = []
+
+class ShakeResponse(BaseModel):
+    synced: bool
+    message: str
 
 
 # --- ROUTES ---
@@ -80,14 +86,27 @@ def sync_metadata(request: SyncRequest, db: Session = Depends(get_db), current_u
     pending_sparks = db.query(Spark).filter(Spark.receiver_id == current_user.id).all()
 
     # Delete expired sparks from DB entirely (Garbage collection)
+    # Ignore deletion if it's a locked time capsule
     now = datetime.utcnow()
-    db.query(Spark).filter(Spark.expires_at < now).delete()
+
+    # We only delete sparks that have expired AND (are not time capsules OR have passed their unlock + 24h)
+    sparks_to_delete = db.query(Spark).filter(
+        Spark.expires_at < now,
+        (Spark.unlock_at.is_(None)) | (Spark.unlock_at < now)
+    ).all()
+
+    for s in sparks_to_delete:
+        db.delete(s)
     db.commit()
 
-    # Return only unexpired sparks
-    response_data["sparks"] = [s for s in pending_sparks if s.expires_at >= now]
+    # Return active sparks (including locked ones, so the client knows they exist but can't open them yet)
+    # Re-query after deletion
+    pending_sparks = db.query(Spark).filter(Spark.receiver_id == current_user.id).all()
+    response_data["sparks"] = pending_sparks
 
     return response_data
+
+from datetime import timedelta
 
 @router.post("/sparks", response_model=SparkResponse)
 def send_spark(spark: SparkCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -102,8 +121,13 @@ def send_spark(spark: SparkCreate, db: Session = Depends(get_db), current_user: 
         sender_id=current_user.id,
         receiver_id=current_user.partner_id,
         spark_type=spark.spark_type,
-        encrypted_payload=spark.encrypted_payload
+        encrypted_payload=spark.encrypted_payload,
+        unlock_at=spark.unlock_at
     )
+
+    # Ensure the spark doesn't expire immediately upon unlocking
+    if spark.unlock_at:
+        new_spark.expires_at = spark.unlock_at + timedelta(hours=24)
 
     db.add(new_spark)
     db.commit()
@@ -125,3 +149,23 @@ def consume_spark(spark_id: int, db: Session = Depends(get_db), current_user: Us
     db.commit()
 
     return {"message": "Spark consumed and deleted successfully"}
+
+@router.post("/shake", response_model=ShakeResponse)
+def handle_shake(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """
+    Called when the user physically shakes their device.
+    Checks if the partner shook their device in the last 30 seconds.
+    """
+    if not current_user.partner:
+        return ShakeResponse(synced=False, message="No partner linked")
+
+    now = datetime.utcnow()
+    current_user.last_shake = now
+    db.commit()
+
+    if current_user.partner.last_shake:
+        time_diff = (now - current_user.partner.last_shake).total_seconds()
+        if time_diff <= 30:
+            return ShakeResponse(synced=True, message="Synchronous shake detected!")
+
+    return ShakeResponse(synced=False, message="Shake recorded, waiting for partner...")
