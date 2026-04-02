@@ -14,6 +14,8 @@ export interface SyncResponse {
     partner_id?: number;
     partner_mood?: number;
     streak_count: number;
+    karma_score: number;
+    partner_karma: number;
     sparks: Spark[];
 }
 
@@ -24,6 +26,9 @@ class SyncManager {
     public currentStreak: number = 0;
     public partnerMood: number | null = null;
     public localMood: number = 3;
+    public myKarma: number = 0;
+    public partnerKarma: number = 0;
+    public isConflictPredicted: boolean = false;
 
     /**
      * Pull partner status and pending Sparks, and push local status.
@@ -39,6 +44,8 @@ class SyncManager {
 
             const payload: any = {
                 streak_count: storedStreak ? parseInt(storedStreak, 10) : 0,
+                // We do NOT send karma_score here because the server is the source of truth
+                // for our karma (incremented by the partner).
             };
 
             if (storedMood) {
@@ -56,6 +63,15 @@ class SyncManager {
             }
 
             this.partnerMood = response.data.partner_mood || null;
+            this.myKarma = response.data.karma_score;
+            this.partnerKarma = response.data.partner_karma;
+
+            // Conflict Predictor Logic
+            if (this.localMood <= 2 && this.partnerMood !== null && this.partnerMood <= 2) {
+                this.isConflictPredicted = true;
+            } else {
+                this.isConflictPredicted = false;
+            }
 
             return response.data;
         } catch (error) {
@@ -158,6 +174,22 @@ class SyncManager {
         this.localMood = mood;
         await AsyncStorage.setItem('local_mood', mood.toString());
         await this.syncWithServer();
+    }
+
+    /**
+     * Termómetro de deuda: Register a favor the partner did for YOU.
+     * Acknowledging their nice deeds increments THEIR karma on the server.
+     */
+    async incrementPartnerKarma() {
+        try {
+            await api.post<SyncResponse>('/sync/', {
+                increment_partner_karma: true
+            });
+            // Force a full sync to update local state with their new karma
+            await this.syncWithServer();
+        } catch (error) {
+            console.error("Failed to increment partner karma", error);
+        }
     }
 }
 

@@ -8,6 +8,7 @@ import AvatarWidget from '../components/AvatarWidget';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { Accelerometer } from 'expo-sensors';
+import plansData from '../data/plans.json';
 
 export default function HomeScreen({ navigation }: any) {
     const { user, logout, refreshUser } = useAuth();
@@ -24,6 +25,13 @@ export default function HomeScreen({ navigation }: any) {
     // Time Capsule Input Modal State
     const [isCapsuleModalVisible, setIsCapsuleModalVisible] = useState(false);
     const [capsuleInputText, setCapsuleInputText] = useState('');
+
+    // Feature: Random Plan Generator
+    const [randomPlan, setRandomPlan] = useState<string | null>(null);
+
+    // Termómetro Modal
+    const [isKarmaModalVisible, setIsKarmaModalVisible] = useState(false);
+    const [karmaInputText, setKarmaInputText] = useState('');
 
     // Feature 7: Secret Signal
     const [tapCount, setTapCount] = useState(0);
@@ -199,6 +207,29 @@ export default function HomeScreen({ navigation }: any) {
         }
     };
 
+    const generateRandomPlan = () => {
+        const randomIndex = Math.floor(Math.random() * plansData.length);
+        setRandomPlan(plansData[randomIndex]);
+    };
+
+    const handleRecordFavor = async () => {
+        if (!karmaInputText.trim()) {
+            Alert.alert("Error", "Please write what they did!");
+            return;
+        }
+        setIsKarmaModalVisible(false);
+        await syncManager.incrementPartnerKarma();
+
+        // Log it as an entry to keep the memory alive
+        try {
+            await api.post('/entries/', { text: `Termómetro de Deuda: Partner did something nice: ${karmaInputText}`, mood: 5 });
+        } catch(e) {}
+
+        setKarmaInputText('');
+        Alert.alert("Recorded!", "You acknowledged their nice gesture. Their karma increased! 😇");
+        loadData();
+    };
+
     useFocusEffect(
         useCallback(() => {
             loadData();
@@ -271,6 +302,19 @@ export default function HomeScreen({ navigation }: any) {
                 </View>
             </Modal>
 
+            <Modal visible={!!randomPlan} animationType="fade" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.polaroidContainer}>
+                        <Text style={styles.polaroidTitle}>Random Plan 🎲</Text>
+                        <Text style={[styles.polaroidDesc, { fontSize: 18, color: '#333', marginVertical: 20 }]}>{randomPlan}</Text>
+                        <View style={{flexDirection: 'row', justifyContent: 'space-between', width: '100%'}}>
+                            <Button title="Reroll 🎲" color="#888" onPress={generateRandomPlan} />
+                            <Button title="Awesome!" color="#3cb371" onPress={() => setRandomPlan(null)} />
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
             <Modal visible={!!capsuleMsg} animationType="slide" transparent>
                 <View style={styles.modalOverlay}>
                     <View style={styles.polaroidContainer}>
@@ -328,6 +372,13 @@ export default function HomeScreen({ navigation }: any) {
                 </View>
             )}
 
+            {/* Conflict Predictor Banner */}
+            {syncManager.isConflictPredicted && (
+                <View style={styles.conflictBanner}>
+                    <Text style={styles.conflictText}>💙 We noticed both of you are feeling a bit down. Taking a moment for a quiet chat might help.</Text>
+                </View>
+            )}
+
             {/* Dopaminergic Header / Aura Avatar */}
             {/* TouchableWithoutFeedback on the header for the "Undercover Secret Signal" */}
             <TouchableOpacity
@@ -346,6 +397,9 @@ export default function HomeScreen({ navigation }: any) {
                     ) : (
                         <Text style={styles.noMoodText}>Waiting for mood...</Text>
                     )}
+                    <View style={styles.karmaBadge}>
+                        <Text style={styles.karmaText}>😇 Karma: {syncData?.partner_karma || 0}</Text>
+                    </View>
                 </View>
 
                 <View style={styles.streakContainer}>
@@ -353,6 +407,35 @@ export default function HomeScreen({ navigation }: any) {
                     <Text style={styles.streakText}>{syncData?.streak_count || 0} Days</Text>
                 </View>
             </TouchableOpacity>
+
+            <View style={styles.karmaActionSection}>
+                <Text style={styles.karmaSectionTitle}>Termómetro Emocional</Text>
+                <View style={styles.karmaButtons}>
+                    <TouchableOpacity style={styles.karmaBtn} onPress={() => setIsKarmaModalVisible(true)}>
+                        <Text style={styles.karmaBtnText}>Record a favor they did 💖</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.myKarmaText}>My Karma: {syncData?.karma_score || 0}</Text>
+                </View>
+            </View>
+
+            <Modal visible={isKarmaModalVisible} animationType="fade" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.polaroidContainer}>
+                        <Text style={styles.polaroidTitle}>Record a Favor 💖</Text>
+                        <Text style={{marginBottom: 10, color: '#666'}}>What nice thing did they do for you?</Text>
+                        <TextInput
+                            style={[styles.input, { width: '100%', height: 60 }]}
+                            placeholder="e.g., Brought me coffee..."
+                            value={karmaInputText}
+                            onChangeText={setKarmaInputText}
+                        />
+                        <View style={{flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginTop: 10}}>
+                            <Button title="Cancel" color="#888" onPress={() => setIsKarmaModalVisible(false)} />
+                            <Button title="Save" color="#ff69b4" onPress={handleRecordFavor} />
+                        </View>
+                    </View>
+                </View>
+            </Modal>
 
             <View style={styles.actions}>
                 <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('Mood')}>
@@ -366,6 +449,9 @@ export default function HomeScreen({ navigation }: any) {
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.actionBtn, {backgroundColor: '#8a2be2'}]} onPress={() => setIsCapsuleModalVisible(true)}>
                     <Text style={styles.actionBtnText}>Capsule ⏳</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.actionBtn, {backgroundColor: '#ff8c00'}]} onPress={generateRandomPlan}>
+                    <Text style={styles.actionBtnText}>Plan 🎲</Text>
                 </TouchableOpacity>
             </View>
 
@@ -428,12 +514,69 @@ const styles = StyleSheet.create({
         fontStyle: 'italic',
         marginTop: 5,
     },
+    karmaBadge: {
+        marginTop: 5,
+        backgroundColor: '#e6e6fa',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 10,
+    },
+    karmaText: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: '#4b0082',
+    },
+    karmaActionSection: {
+        backgroundColor: '#fff',
+        padding: 15,
+        borderRadius: 15,
+        marginBottom: 20,
+        elevation: 2,
+    },
+    karmaSectionTitle: {
+        fontWeight: 'bold',
+        marginBottom: 10,
+        color: '#333',
+    },
+    karmaButtons: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    karmaBtn: {
+        backgroundColor: '#ff69b4',
+        paddingVertical: 8,
+        paddingHorizontal: 15,
+        borderRadius: 20,
+    },
+    karmaBtnText: {
+        color: 'white',
+        fontWeight: 'bold',
+    },
+    myKarmaText: {
+        fontWeight: 'bold',
+        color: '#555',
+    },
     sparkBanner: {
         backgroundColor: '#ffd700',
         padding: 15,
         borderRadius: 15,
         marginBottom: 20,
         alignItems: 'center',
+    },
+    conflictBanner: {
+        backgroundColor: '#e0f7fa',
+        borderColor: '#b2ebf2',
+        borderWidth: 1,
+        padding: 15,
+        borderRadius: 15,
+        marginBottom: 20,
+    },
+    conflictText: {
+        color: '#006064',
+        textAlign: 'center',
+        fontStyle: 'italic',
+        fontWeight: '500',
     },
     sparkText: {
         fontWeight: 'bold',
