@@ -15,7 +15,11 @@ class User(Base):
     character = Column(String, nullable=True) # 'owl' or 'alien'
     current_mood = Column(Integer, default=3) # 1-5 scale
 
-    
+    # Dopaminergic Local-First Metadata
+    streak_count = Column(Integer, default=0)
+    last_active = Column(DateTime, nullable=True)
+    sync_token = Column(String, nullable=True)
+
     # Partner code for linking
     link_code = Column(String, unique=True, nullable=True)
 

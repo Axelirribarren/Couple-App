@@ -5,6 +5,7 @@ import api from '../services/api';
 import { Photo } from '../types';
 import PhotoCard from '../components/PhotoCard';
 import { useAuth } from '../context/AuthContext';
+import { syncManager } from '../services/syncManager';
 
 export default function PhotosScreen() {
     const [photos, setPhotos] = useState<Photo[]>([]);
@@ -59,9 +60,47 @@ export default function PhotosScreen() {
         }
     };
 
+    const sendPolaroidSpark = async () => {
+        // Take a photo using the camera
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert('Permission Denied', 'Sorry, we need camera roll permissions to make this work!');
+            return;
+        }
+
+        let result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 0.1, // Keep it small for base64 sending over sparks
+            base64: true, // We encode it directly for the temporary Spark
+        });
+
+        if (!result.canceled && result.assets[0].base64) {
+            try {
+                const success = await syncManager.sendSpark('polaroid', result.assets[0].base64);
+                if (success) {
+                    Alert.alert("Mystery Polaroid Sent! 📸", "Your partner will receive a fragmented photo that they have to unlock.");
+                } else {
+                    Alert.alert("Error", "Could not send polaroid right now.");
+                }
+            } catch (e) {
+                console.log(e);
+                Alert.alert("Error", "Failed to send polaroid spark.");
+            }
+        }
+    };
+
     return (
         <View style={styles.container}>
-            <Button title="Upload Photo" onPress={pickImage} />
+            <View style={styles.buttonRow}>
+                <View style={styles.btnWrapper}>
+                    <Button title="Upload Photo" onPress={pickImage} />
+                </View>
+                <View style={styles.btnWrapper}>
+                    <Button title="Send Mystery Polaroid 📸" color="#ff4500" onPress={sendPolaroidSpark} />
+                </View>
+            </View>
             <FlatList
                 data={photos}
                 keyExtractor={(item) => item.id.toString()}
@@ -75,4 +114,13 @@ export default function PhotosScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1, padding: 10 },
     list: { marginTop: 10 },
+    buttonRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 10,
+    },
+    btnWrapper: {
+        flex: 1,
+        marginHorizontal: 5,
+    }
 });
