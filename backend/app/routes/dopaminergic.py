@@ -6,6 +6,7 @@ from typing import List, Optional
 from ..database import get_db
 from ..models.user import User
 from ..models.spark import Spark
+from ..models.journal import DailyJournal
 from ..routes.auth import get_current_user
 from pydantic import BaseModel
 
@@ -22,6 +23,15 @@ class SparkCreate(BaseModel):
     spark_type: str
     encrypted_payload: Optional[str] = None
     unlock_at: Optional[datetime] = None
+
+class AsymmetricJournalEntry(BaseModel):
+    date_str: str # e.g. YYYY-MM-DD
+    answer: str
+
+class JournalResponse(BaseModel):
+    my_answer: Optional[str] = None
+    partner_answer: Optional[str] = None
+    both_answered: bool = False
 
 class SparkResponse(BaseModel):
     id: int
@@ -161,6 +171,41 @@ def consume_spark(spark_id: int, db: Session = Depends(get_db), current_user: Us
     db.commit()
 
     return {"message": "Spark consumed and deleted successfully"}
+
+@router.get("/journal/{date_str}", response_model=JournalResponse)
+def get_journal(date_str: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    my_entry = db.query(DailyJournal).filter(DailyJournal.user_id == current_user.id, DailyJournal.date_str == date_str).first()
+
+    partner_entry = None
+    if current_user.partner_id:
+        partner_entry = db.query(DailyJournal).filter(DailyJournal.user_id == current_user.partner_id, DailyJournal.date_str == date_str).first()
+
+    my_ans = my_entry.answer if my_entry else None
+    partner_ans = partner_entry.answer if partner_entry else None
+
+    both_answered = bool(my_ans and partner_ans)
+
+    return JournalResponse(
+        my_answer=my_ans,
+        partner_answer=partner_ans if both_answered else None,
+        both_answered=both_answered
+    )
+
+@router.post("/journal", response_model=JournalResponse)
+def post_journal(entry: AsymmetricJournalEntry, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # Check if entry exists to update or create
+    my_entry = db.query(DailyJournal).filter(DailyJournal.user_id == current_user.id, DailyJournal.date_str == entry.date_str).first()
+
+    if my_entry:
+        my_entry.answer = entry.answer
+    else:
+        new_entry = DailyJournal(user_id=current_user.id, date_str=entry.date_str, answer=entry.answer)
+        db.add(new_entry)
+
+    db.commit()
+
+    # Return updated state
+    return get_journal(entry.date_str, db, current_user)
 
 @router.post("/shake", response_model=ShakeResponse)
 def handle_shake(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):

@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from .database import engine, Base
 from .routes import auth, partner, entries, users, checkins, tests, timeline, dopaminergic
-from .models import spark
+from .models import spark, journal
 
 # Create tables
 Base.metadata.create_all(bind=engine)
