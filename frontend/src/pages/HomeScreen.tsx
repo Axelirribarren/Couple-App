@@ -33,6 +33,11 @@ export default function HomeScreen({ navigation }: any) {
     const [isKarmaModalVisible, setIsKarmaModalVisible] = useState(false);
     const [karmaInputText, setKarmaInputText] = useState('');
 
+    // Asymmetric Journal
+    const [journalData, setJournalData] = useState<any>(null);
+    const [journalInput, setJournalInput] = useState('');
+    const [isJournalModalVisible, setIsJournalModalVisible] = useState(false);
+
     // Feature 7: Secret Signal
     const [tapCount, setTapCount] = useState(0);
     const [lastTapTime, setLastTapTime] = useState(0);
@@ -106,6 +111,12 @@ export default function HomeScreen({ navigation }: any) {
                         setIncomingSparks(data.sparks);
                     }
                 }
+
+                // Check Daily Journal
+                const now = new Date();
+                const todayStr = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`;
+                const jRes = await api.get(`/sync/journal/${todayStr}`);
+                setJournalData(jRes.data);
             }
 
             const myRes = await api.get('/entries/');
@@ -228,6 +239,31 @@ export default function HomeScreen({ navigation }: any) {
         setKarmaInputText('');
         Alert.alert("Recorded!", "You acknowledged their nice gesture. Their karma increased! 😇");
         loadData();
+    };
+
+    const handleSubmitJournal = async () => {
+        if (!journalInput.trim()) {
+            Alert.alert("Error", "Please write an answer.");
+            return;
+        }
+
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`;
+
+        try {
+            const res = await api.post('/sync/journal', {
+                date_str: todayStr,
+                answer: journalInput
+            });
+            setJournalData(res.data);
+            setIsJournalModalVisible(false);
+            setJournalInput('');
+
+            // Log locally as memory
+            await api.post('/entries/', { text: `Asymmetric Journal Answer: ${journalInput}`, mood: 3 });
+        } catch(e) {
+            console.error(e);
+        }
     };
 
     useFocusEffect(
@@ -379,6 +415,72 @@ export default function HomeScreen({ navigation }: any) {
                 </View>
             )}
 
+            {/* Relationship Tamagotchi */}
+            <View style={styles.tamagotchiContainer}>
+                <Text style={styles.tamagotchiTitle}>Our Tree 🌳</Text>
+                <Text style={styles.tamagotchiEmoji}>
+                    {syncData && syncData.streak_count === 1 ? '🌱' :
+                     syncData && syncData.streak_count < 5 ? '🌿' :
+                     syncData && syncData.streak_count < 10 ? '🪴' :
+                     syncData && syncData.streak_count < 20 ? '🌳' : '🌺🌳🌺'}
+                </Text>
+                <Text style={styles.tamagotchiSub}>
+                    {syncData && syncData.streak_count === 1 ? 'A new beginning! Keep the streak alive to grow.' :
+                     'Thriving on your love and karma!'}
+                </Text>
+            </View>
+
+            {/* Asymmetric Journal Banner */}
+            {journalData && !journalData.both_answered && (
+                <View style={styles.journalBanner}>
+                    <Text style={styles.journalTitle}>📖 Daily Question</Text>
+                    <Text style={styles.journalPrompt}>"What was the highlight of your day?"</Text>
+
+                    {!journalData.my_answer ? (
+                        <TouchableOpacity style={styles.journalBtn} onPress={() => setIsJournalModalVisible(true)}>
+                            <Text style={styles.journalBtnText}>Answer to reveal their response 🔒</Text>
+                        </TouchableOpacity>
+                    ) : (
+                        <Text style={styles.journalWaiting}>✅ You answered. Waiting for partner...</Text>
+                    )}
+                </View>
+            )}
+
+            {journalData && journalData.both_answered && (
+                <View style={[styles.journalBanner, {backgroundColor: '#e6e6fa'}]}>
+                    <Text style={styles.journalTitle}>📖 Daily Question: Revealed! ✨</Text>
+                    <Text style={styles.journalPrompt}>"What was the highlight of your day?"</Text>
+
+                    <Text style={styles.journalLabel}>You:</Text>
+                    <Text style={styles.journalAnswer}>{journalData.my_answer}</Text>
+
+                    <Text style={styles.journalLabel}>Partner:</Text>
+                    <Text style={styles.journalAnswer}>{journalData.partner_answer}</Text>
+                </View>
+            )}
+
+            {/* Asymmetric Journal Modal */}
+            <Modal visible={isJournalModalVisible} animationType="slide" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.polaroidContainer}>
+                        <Text style={styles.polaroidTitle}>Daily Question 📖</Text>
+                        <Text style={{marginBottom: 10, color: '#666', fontStyle: 'italic'}}>"What was the highlight of your day?"</Text>
+                        <TextInput
+                            style={[styles.input, { width: '100%', height: 100, textAlignVertical: 'top' }]}
+                            multiline
+                            placeholder="Your honest answer..."
+                            value={journalInput}
+                            onChangeText={setJournalInput}
+                        />
+                        <Text style={{fontSize: 10, color: '#ff4500', marginTop: 5}}>Your answer will remain hidden until they answer too.</Text>
+                        <View style={{flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginTop: 15}}>
+                            <Button title="Cancel" color="#888" onPress={() => setIsJournalModalVisible(false)} />
+                            <Button title="Submit 🔒" color="#4b0082" onPress={handleSubmitJournal} />
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
             {/* Dopaminergic Header / Aura Avatar */}
             {/* TouchableWithoutFeedback on the header for the "Undercover Secret Signal" */}
             <TouchableOpacity
@@ -447,10 +549,15 @@ export default function HomeScreen({ navigation }: any) {
                 <TouchableOpacity style={[styles.actionBtn, {backgroundColor: '#3cb371'}]} onPress={() => navigation.navigate('StolenMoments')}>
                     <Text style={styles.actionBtnText}>Moments 📸</Text>
                 </TouchableOpacity>
+            </View>
+            <View style={[styles.actions, { marginTop: -10 }]}>
                 <TouchableOpacity style={[styles.actionBtn, {backgroundColor: '#8a2be2'}]} onPress={() => setIsCapsuleModalVisible(true)}>
                     <Text style={styles.actionBtnText}>Capsule ⏳</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.actionBtn, {backgroundColor: '#ff8c00'}]} onPress={generateRandomPlan}>
+                <TouchableOpacity style={[styles.actionBtn, {backgroundColor: '#ff8c00'}]} onPress={() => navigation.navigate('FirstTimes')}>
+                    <Text style={styles.actionBtnText}>Firsts 🌟</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.actionBtn, {backgroundColor: '#20b2aa'}]} onPress={generateRandomPlan}>
                     <Text style={styles.actionBtnText}>Plan 🎲</Text>
                 </TouchableOpacity>
             </View>
@@ -577,6 +684,75 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontStyle: 'italic',
         fontWeight: '500',
+    },
+    tamagotchiContainer: {
+        backgroundColor: '#e8f5e9',
+        padding: 20,
+        borderRadius: 20,
+        alignItems: 'center',
+        marginBottom: 20,
+        elevation: 2,
+    },
+    tamagotchiTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#2e7d32',
+        marginBottom: 10,
+    },
+    tamagotchiEmoji: {
+        fontSize: 60,
+        marginBottom: 10,
+    },
+    tamagotchiSub: {
+        fontSize: 12,
+        color: '#4caf50',
+        fontStyle: 'italic',
+        textAlign: 'center',
+    },
+    journalBanner: {
+        backgroundColor: '#f5f5f5',
+        padding: 15,
+        borderRadius: 15,
+        marginBottom: 20,
+        elevation: 2,
+    },
+    journalTitle: {
+        fontWeight: 'bold',
+        fontSize: 16,
+        color: '#4b0082',
+        marginBottom: 5,
+    },
+    journalPrompt: {
+        fontStyle: 'italic',
+        color: '#333',
+        marginBottom: 10,
+    },
+    journalBtn: {
+        backgroundColor: '#4b0082',
+        paddingVertical: 10,
+        borderRadius: 8,
+        alignItems: 'center',
+    },
+    journalBtnText: {
+        color: 'white',
+        fontWeight: 'bold',
+    },
+    journalWaiting: {
+        color: '#2e8b57',
+        fontWeight: 'bold',
+        fontStyle: 'italic',
+    },
+    journalLabel: {
+        fontWeight: 'bold',
+        marginTop: 10,
+        color: '#555',
+    },
+    journalAnswer: {
+        color: '#333',
+        paddingLeft: 10,
+        borderLeftWidth: 2,
+        borderColor: '#ccc',
+        marginTop: 5,
     },
     sparkText: {
         fontWeight: 'bold',
