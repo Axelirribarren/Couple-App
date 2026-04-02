@@ -5,6 +5,11 @@ import api from '../services/api';
 import { DailyEntry } from '../types';
 import { syncManager, SyncResponse } from '../services/syncManager';
 import AvatarWidget from '../components/AvatarWidget';
+import LDRClock from '../components/LDRClock';
+import TimeCapsuleModal from '../components/modals/TimeCapsuleModal';
+import KarmaModal from '../components/modals/KarmaModal';
+import RandomPlanModal from '../components/modals/RandomPlanModal';
+import PolaroidModal from '../components/modals/PolaroidModal';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { Accelerometer } from 'expo-sensors';
@@ -46,7 +51,6 @@ export default function HomeScreen({ navigation }: any) {
     const [isReunionModalVisible, setIsReunionModalVisible] = useState(false);
     const [reunionInput, setReunionInput] = useState('');
     const [timezoneInput, setTimezoneInput] = useState('');
-    const [currentTimePartner, setCurrentTimePartner] = useState<string>('');
 
     useEffect(() => {
         const loadLDRSettings = async () => {
@@ -63,25 +67,6 @@ export default function HomeScreen({ navigation }: any) {
         };
         loadLDRSettings();
     }, []);
-
-    // Live clock for partner timezone
-    useEffect(() => {
-        let interval: any;
-        if (isLongDistanceMode && partnerTimezoneOffset !== null) {
-            interval = setInterval(() => {
-                const now = new Date();
-                const offsetHours = parseFloat(partnerTimezoneOffset);
-                if (!isNaN(offsetHours)) {
-                    // Convert local time to UTC, then apply partner offset
-                    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-                    const partnerTime = new Date(utc + (3600000 * offsetHours));
-                    const timeStr = partnerTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    setCurrentTimePartner(timeStr);
-                }
-            }, 1000);
-        }
-        return () => { if (interval) clearInterval(interval); };
-    }, [isLongDistanceMode, partnerTimezoneOffset]);
 
     const setLongDistanceDate = async () => {
         if (reunionInput) {
@@ -143,39 +128,44 @@ export default function HomeScreen({ navigation }: any) {
         setLastTapTime(now);
     };
 
-    // Feature 4: Shake to Connect
-    useEffect(() => {
-        let lastShake = 0;
-        const subscription = Accelerometer.addListener(async (accelerometerData) => {
-            const { x, y, z } = accelerometerData;
-            const acceleration = Math.sqrt(x * x + y * y + z * z);
+    // Feature 4: Shake to Connect (Optimized Listener)
+    useFocusEffect(
+        useCallback(() => {
+            let lastShake = 0;
+            const subscription = Accelerometer.addListener(async (accelerometerData) => {
+                const { x, y, z } = accelerometerData;
+                const acceleration = Math.sqrt(x * x + y * y + z * z);
 
-            // 2.5G threshold for a strong shake
-            if (acceleration > 2.5) {
-                const now = Date.now();
-                // Debounce shake detection (only one shake every 5 seconds)
-                if (now - lastShake > 5000) {
-                    lastShake = now;
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                // 2.5G threshold for a strong shake
+                if (acceleration > 2.5) {
+                    const now = Date.now();
+                    // Debounce shake detection (only one shake every 5 seconds)
+                    if (now - lastShake > 5000) {
+                        lastShake = now;
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
 
-                    const response = await syncManager.reportShake();
-                    if (response.synced) {
-                        setShakeConfetti(true);
-                        Alert.alert("✨ Magic Connection! ✨", "You and your partner shook your phones at the same time!");
-                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                        const response = await syncManager.reportShake();
+                        if (response.synced) {
+                            setShakeConfetti(true);
+                            Alert.alert("✨ Magic Connection! ✨", "You and your partner shook your phones at the same time!");
+                            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-                        // Hide confetti after 5 seconds
-                        setTimeout(() => setShakeConfetti(false), 5000);
+                            // Hide confetti after 5 seconds
+                            setTimeout(() => setShakeConfetti(false), 5000);
+                        }
                     }
                 }
-            }
-        });
+            });
 
-        // Set update interval (fast enough to detect shakes but not drain battery instantly)
-        Accelerometer.setUpdateInterval(200);
+            // Set update interval (fast enough to detect shakes but not drain battery instantly)
+            Accelerometer.setUpdateInterval(200);
 
-        return () => subscription.remove();
-    }, []);
+            // Clean up the subscription when the screen loses focus
+            return () => {
+                subscription.remove();
+            };
+        }, [])
+    );
 
 
     const loadData = async () => {
@@ -277,7 +267,7 @@ export default function HomeScreen({ navigation }: any) {
         }
     };
 
-    const handleSendTimeCapsule = async () => {
+    const handleSendTimeCapsule = useCallback(async () => {
         if (!capsuleInputText.trim()) {
             Alert.alert("Error", "Message cannot be empty.");
             return;
@@ -294,7 +284,7 @@ export default function HomeScreen({ navigation }: any) {
         } else {
             Alert.alert("Error", "Could not send time capsule.");
         }
-    };
+    }, [capsuleInputText]);
 
     const closePolaroid = async () => {
         if (activePolaroid) {
@@ -306,12 +296,12 @@ export default function HomeScreen({ navigation }: any) {
         }
     };
 
-    const generateRandomPlan = () => {
+    const generateRandomPlan = useCallback(() => {
         const randomIndex = Math.floor(Math.random() * plansData.length);
         setRandomPlan(plansData[randomIndex]);
-    };
+    }, []);
 
-    const handleRecordFavor = async () => {
+    const handleRecordFavor = useCallback(async () => {
         if (!karmaInputText.trim()) {
             Alert.alert("Error", "Please write what they did!");
             return;
@@ -327,7 +317,7 @@ export default function HomeScreen({ navigation }: any) {
         setKarmaInputText('');
         Alert.alert("Recorded!", "You acknowledged their nice gesture. Their karma increased! 😇");
         loadData();
-    };
+    }, [karmaInputText]);
 
     const handleSubmitJournal = async () => {
         if (!journalInput.trim()) {
@@ -451,39 +441,19 @@ export default function HomeScreen({ navigation }: any) {
             contentContainerStyle={[styles.scrollContainer, shakeConfetti && { backgroundColor: '#ffe4e1' }]}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         >
-            {/* Time Capsule Input Modal for Cross-Platform compatibility */}
-            <Modal visible={isCapsuleModalVisible} animationType="fade" transparent>
-                <View style={styles.modalOverlay}>
-                    <View style={styles.polaroidContainer}>
-                        <Text style={styles.polaroidTitle}>Time Capsule ⏳</Text>
-                        <Text style={{marginBottom: 10, color: '#666'}}>Write a message for your partner. It will unlock tomorrow.</Text>
-                        <TextInput
-                            style={[styles.input, { width: '100%', height: 100, textAlignVertical: 'top' }]}
-                            multiline
-                            placeholder="I hope you're having a great day..."
-                            value={capsuleInputText}
-                            onChangeText={setCapsuleInputText}
-                        />
-                        <View style={{flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginTop: 10}}>
-                            <Button title="Cancel" color="#888" onPress={() => setIsCapsuleModalVisible(false)} />
-                            <Button title="Send" color="#8a2be2" onPress={handleSendTimeCapsule} />
-                        </View>
-                    </View>
-                </View>
-            </Modal>
+            <TimeCapsuleModal
+                visible={isCapsuleModalVisible}
+                inputText={capsuleInputText}
+                setInputText={setCapsuleInputText}
+                onClose={useCallback(() => setIsCapsuleModalVisible(false), [])}
+                onSend={handleSendTimeCapsule}
+            />
 
-            <Modal visible={!!randomPlan} animationType="fade" transparent>
-                <View style={styles.modalOverlay}>
-                    <View style={styles.polaroidContainer}>
-                        <Text style={styles.polaroidTitle}>Random Plan 🎲</Text>
-                        <Text style={[styles.polaroidDesc, { fontSize: 18, color: '#333', marginVertical: 20 }]}>{randomPlan}</Text>
-                        <View style={{flexDirection: 'row', justifyContent: 'space-between', width: '100%'}}>
-                            <Button title="Reroll 🎲" color="#888" onPress={generateRandomPlan} />
-                            <Button title="Awesome!" color="#3cb371" onPress={() => setRandomPlan(null)} />
-                        </View>
-                    </View>
-                </View>
-            </Modal>
+            <RandomPlanModal
+                plan={randomPlan}
+                onReroll={generateRandomPlan}
+                onClose={useCallback(() => setRandomPlan(null), [])}
+            />
 
             <Modal visible={!!capsuleMsg} animationType="slide" transparent>
                 <View style={styles.modalOverlay}>
@@ -497,26 +467,11 @@ export default function HomeScreen({ navigation }: any) {
                 </View>
             </Modal>
 
-            <Modal
-                visible={!!activePolaroid}
-                animationType="fade"
-                transparent={true}
-                onRequestClose={closePolaroid}
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.polaroidContainer}>
-                        <Text style={styles.polaroidTitle}>Mystery Polaroid 📸</Text>
-                        <Image
-                            source={{ uri: `data:image/jpeg;base64,${activePolaroid?.encrypted_payload}` }}
-                            style={styles.polaroidImage}
-                        />
-                        <Text style={styles.polaroidDesc}>Your partner sent you a snapshot of their day. It will disappear after you close this!</Text>
-                        <TouchableOpacity style={styles.polaroidCloseBtn} onPress={closePolaroid}>
-                            <Text style={styles.polaroidCloseText}>Close and delete forever</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
+            <PolaroidModal
+                polaroidSpark={activePolaroid}
+                onClose={closePolaroid}
+            />
+
             <View style={styles.header}>
                 <Text style={styles.title}>Dashboard</Text>
                 <Button title="Logout" onPress={logout} color="red" />
@@ -623,9 +578,7 @@ export default function HomeScreen({ navigation }: any) {
                         {Math.max(0, Math.ceil((new Date(reunionDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24)))} Days
                     </Text>
                     {partnerTimezoneOffset && (
-                        <Text style={styles.ldrClock}>
-                            Partner's Time: {currentTimePartner || '--:--'}
-                        </Text>
+                        <LDRClock partnerTimezoneOffset={partnerTimezoneOffset} />
                     )}
                 </View>
             )}
@@ -669,24 +622,13 @@ export default function HomeScreen({ navigation }: any) {
                 </View>
             </View>
 
-            <Modal visible={isKarmaModalVisible} animationType="fade" transparent>
-                <View style={styles.modalOverlay}>
-                    <View style={styles.polaroidContainer}>
-                        <Text style={styles.polaroidTitle}>Record a Favor 💖</Text>
-                        <Text style={{marginBottom: 10, color: '#666'}}>What nice thing did they do for you?</Text>
-                        <TextInput
-                            style={[styles.input, { width: '100%', height: 60 }]}
-                            placeholder="e.g., Brought me coffee..."
-                            value={karmaInputText}
-                            onChangeText={setKarmaInputText}
-                        />
-                        <View style={{flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginTop: 10}}>
-                            <Button title="Cancel" color="#888" onPress={() => setIsKarmaModalVisible(false)} />
-                            <Button title="Save" color="#ff69b4" onPress={handleRecordFavor} />
-                        </View>
-                    </View>
-                </View>
-            </Modal>
+            <KarmaModal
+                visible={isKarmaModalVisible}
+                inputText={karmaInputText}
+                setInputText={setKarmaInputText}
+                onClose={useCallback(() => setIsKarmaModalVisible(false), [])}
+                onSave={handleRecordFavor}
+            />
 
             <View style={styles.actions}>
                 <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('Mood')}>
@@ -890,12 +832,6 @@ const styles = StyleSheet.create({
         fontWeight: '900',
         marginTop: 5,
     },
-    ldrClock: {
-        color: 'white',
-        fontSize: 14,
-        fontStyle: 'italic',
-        marginTop: 10,
-    },
     tamagotchiContainer: {
         backgroundColor: '#e8f5e9',
         padding: 20,
@@ -1019,14 +955,6 @@ const styles = StyleSheet.create({
     polaroidTitle: {
         fontSize: 20,
         fontWeight: 'bold',
-        marginBottom: 15,
-    },
-    polaroidImage: {
-        width: 300,
-        height: 300,
-        resizeMode: 'cover',
-        borderRadius: 10,
-        backgroundColor: '#eee',
         marginBottom: 15,
     },
     polaroidDesc: {
