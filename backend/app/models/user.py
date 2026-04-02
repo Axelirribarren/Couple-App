@@ -19,6 +19,7 @@ class User(Base):
     streak_count = Column(Integer, default=0)
     last_active = Column(DateTime, nullable=True)
     sync_token = Column(String, nullable=True)
+    last_shake = Column(DateTime, nullable=True)
 
     # Partner code for linking
     link_code = Column(String, unique=True, nullable=True)

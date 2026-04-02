@@ -24,6 +24,11 @@ class Spark(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     expires_at = Column(DateTime, default=lambda: datetime.utcnow() + timedelta(hours=24))
 
+    # Feature 1: Cápsula del futuro
+    # If set, the Spark is "locked" and should not be deleted by garbage collection
+    # until after this date (and then it lives for 24h after unlock).
+    unlock_at = Column(DateTime, nullable=True)
+
     # Relationships (Optional, mainly if you want to cascade deletes,
     # but here we'll just query them)
     sender = relationship("User", foreign_keys=[sender_id])

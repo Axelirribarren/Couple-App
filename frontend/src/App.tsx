@@ -7,6 +7,7 @@ import RegisterScreen from './pages/RegisterScreen';
 import HomeScreen from './pages/HomeScreen';
 import MoodScreen from './pages/MoodScreen';
 import PhotosScreen from './pages/PhotosScreen';
+import StolenMomentsScreen from './pages/StolenMomentsScreen';
 import CharacterSelectionScreen from './pages/CharacterSelectionScreen';
 import AvatarWidget from './components/AvatarWidget';
 
@@ -29,6 +30,7 @@ const AppNavigator = () => (
     }} />
     <AppStack.Screen name="Mood" component={MoodScreen} options={{ title: 'Add Entry' }} />
     <AppStack.Screen name="Photos" component={PhotosScreen} options={{ title: 'Photos' }} />
+    <AppStack.Screen name="StolenMoments" component={StolenMomentsScreen} options={{ title: 'Moments 📸' }} />
     <AppStack.Screen name="CharacterSelection" component={CharacterSelectionScreen} options={{ headerShown: false }} />
   </AppStack.Navigator>
 

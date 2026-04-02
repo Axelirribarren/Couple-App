@@ -7,6 +7,7 @@ export interface Spark {
     spark_type: string;
     encrypted_payload?: string;
     created_at: string;
+    unlock_at?: string;
 }
 
 export interface SyncResponse {
@@ -110,18 +111,32 @@ class SyncManager {
     }
 
     /**
-     * Send an ephemeral Spark
+     * Send an ephemeral Spark or Time Capsule
      */
-    async sendSpark(type: 'haptic' | 'polaroid' | 'nudge', payload?: string) {
+    async sendSpark(type: 'haptic' | 'polaroid' | 'nudge' | 'time_capsule' | 'secret_signal', payload?: string, unlockAt?: string) {
         try {
             await api.post('/sync/sparks', {
                 spark_type: type,
-                encrypted_payload: payload // Can be base64 photo data, haptic pattern JSON, etc.
+                encrypted_payload: payload, // Can be base64 photo data, haptic pattern JSON, etc.
+                unlock_at: unlockAt
             });
             return true;
         } catch (error) {
             console.error("Failed to send spark:", error);
             return false;
+        }
+    }
+
+    /**
+     * Report a physical shake to the server to check for synchronization
+     */
+    async reportShake(): Promise<{synced: boolean, message: string}> {
+        try {
+            const res = await api.post('/sync/shake');
+            return res.data;
+        } catch (error) {
+            console.error("Failed to report shake:", error);
+            return { synced: false, message: "Error" };
         }
     }
 
