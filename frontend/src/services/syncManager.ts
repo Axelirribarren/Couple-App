@@ -127,9 +127,9 @@ class SyncManager {
     }
 
     /**
-     * Send an ephemeral Spark or Time Capsule
+     * Send an ephemeral Spark, Time Capsule, or Movie Chat
      */
-    async sendSpark(type: 'haptic' | 'polaroid' | 'nudge' | 'time_capsule' | 'secret_signal', payload?: string, unlockAt?: string) {
+    async sendSpark(type: 'haptic' | 'polaroid' | 'nudge' | 'time_capsule' | 'secret_signal' | 'movie_chat', payload?: string, unlockAt?: string) {
         try {
             await api.post('/sync/sparks', {
                 spark_type: type,
