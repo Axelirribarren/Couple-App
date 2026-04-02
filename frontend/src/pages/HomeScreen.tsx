@@ -1,8 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, Button, StyleSheet, ScrollView, RefreshControl, TextInput, Alert, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, Button, StyleSheet, ScrollView, RefreshControl, TextInput, Alert, TouchableOpacity, Modal, Image } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { DailyEntry } from '../types';
+import { syncManager, SyncResponse } from '../services/syncManager';
+import AvatarWidget from '../components/AvatarWidget';
+import { useFocusEffect } from '@react-navigation/native';
+import * as Haptics from 'expo-haptics';
 
 export default function HomeScreen({ navigation }: any) {
     const { user, logout, refreshUser } = useAuth();
@@ -10,9 +14,25 @@ export default function HomeScreen({ navigation }: any) {
     const [partnerEntries, setPartnerEntries] = useState<DailyEntry[]>([]);
     const [refreshing, setRefreshing] = useState(false);
     const [linkCode, setLinkCode] = useState('');
+    const [syncData, setSyncData] = useState<SyncResponse | null>(null);
+    const [incomingSparks, setIncomingSparks] = useState<any[]>([]);
+    const [activePolaroid, setActivePolaroid] = useState<any | null>(null);
 
     const loadData = async () => {
         try {
+            // Background Dopaminergic Sync
+            if (user?.partner_id) {
+                const data = await syncManager.syncWithServer();
+                if (data) {
+                    setSyncData(data);
+
+                    // Handle incoming sparks
+                    if (data.sparks && data.sparks.length > 0) {
+                        setIncomingSparks(data.sparks);
+                    }
+                }
+            }
+
             const myRes = await api.get('/entries/');
             setMyEntries(myRes.data);
             if (user?.partner_id) {
@@ -31,9 +51,54 @@ export default function HomeScreen({ navigation }: any) {
         setRefreshing(false);
     };
 
-    useEffect(() => {
-        loadData();
-    }, [user]);
+    const sendHapticHeartbeat = async () => {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        const success = await syncManager.sendSpark('haptic', 'heartbeat');
+        if (success) {
+            Alert.alert("Sent!", "Your partner will feel your heartbeat soon. 💓");
+            loadData(); // To potentially update streak
+        } else {
+            Alert.alert("Error", "Could not send spark right now.");
+        }
+    };
+
+    const openSpark = async (spark: any) => {
+        if (spark.spark_type === 'haptic') {
+            // Play haptic feedback for the user
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            setTimeout(() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            }, 300);
+            setTimeout(() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            }, 600);
+
+            Alert.alert("💓 Haptic Spark", "You felt your partner's touch.");
+
+            // Consume immediately for haptic
+            await syncManager.consumeSpark(spark.id);
+            setIncomingSparks(prev => prev.filter(s => s.id !== spark.id));
+        } else if (spark.spark_type === 'polaroid') {
+            // Display modal
+            setActivePolaroid(spark);
+        }
+    };
+
+    const closePolaroid = async () => {
+        if (activePolaroid) {
+            // Consume the spark so it disappears forever (Snapchat style)
+            await syncManager.consumeSpark(activePolaroid.id);
+            // Remove from local UI state
+            setIncomingSparks(prev => prev.filter(s => s.id !== activePolaroid.id));
+            setActivePolaroid(null);
+        }
+    };
+
+    useFocusEffect(
+        useCallback(() => {
+            loadData();
+        }, [user])
+    );
 
     const generateCode = async () => {
         const res = await api.post('/partner/generate-code');
@@ -80,18 +145,80 @@ export default function HomeScreen({ navigation }: any) {
             contentContainerStyle={styles.scrollContainer}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         >
+            <Modal
+                visible={!!activePolaroid}
+                animationType="fade"
+                transparent={true}
+                onRequestClose={closePolaroid}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.polaroidContainer}>
+                        <Text style={styles.polaroidTitle}>Mystery Polaroid 📸</Text>
+                        <Image
+                            source={{ uri: `data:image/jpeg;base64,${activePolaroid?.encrypted_payload}` }}
+                            style={styles.polaroidImage}
+                        />
+                        <Text style={styles.polaroidDesc}>Your partner sent you a snapshot of their day. It will disappear after you close this!</Text>
+                        <TouchableOpacity style={styles.polaroidCloseBtn} onPress={closePolaroid}>
+                            <Text style={styles.polaroidCloseText}>Close and delete forever</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
             <View style={styles.header}>
                 <Text style={styles.title}>Dashboard</Text>
                 <Button title="Logout" onPress={logout} color="red" />
             </View>
 
+            {/* Incoming Sparks Banner */}
+            {incomingSparks.length > 0 && (
+                <View style={styles.sparkBanner}>
+                    <Text style={styles.sparkText}>✨ You have {incomingSparks.length} new spark(s)!</Text>
+                    {incomingSparks.map(spark => (
+                        <TouchableOpacity key={spark.id} style={styles.sparkButton} onPress={() => openSpark(spark)}>
+                            <Text style={styles.sparkButtonText}>
+                                {spark.spark_type === 'haptic' ? 'Feel Heartbeat 💓' : 'Open Polaroid 📸'}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            )}
+
+            {/* Dopaminergic Header / Aura Avatar */}
+            <View style={styles.dopamineHeader}>
+                <View style={styles.partnerAvatarContainer}>
+                    <Text style={styles.partnerText}>Your Partner</Text>
+                    {syncData?.partner_mood ? (
+                        <AvatarWidget
+                            isPartner={true}
+                            partnerMood={syncData.partner_mood}
+                            partnerCharacter={'owl'} // Could be fetched from user.partner if expanded
+                        />
+                    ) : (
+                        <Text style={styles.noMoodText}>Waiting for mood...</Text>
+                    )}
+                </View>
+
+                <View style={styles.streakContainer}>
+                    <Text style={styles.streakEmoji}>🔥</Text>
+                    <Text style={styles.streakText}>{syncData?.streak_count || 0} Days</Text>
+                </View>
+            </View>
+
             <View style={styles.actions}>
-                <Button title="Add Mood" onPress={() => navigation.navigate('Mood')} />
-                <Button title="Photos" onPress={() => navigation.navigate('Photos')} />
+                <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('Mood')}>
+                    <Text style={styles.actionBtnText}>Update Mood</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.actionBtn, styles.heartbeatBtn]} onPress={sendHapticHeartbeat}>
+                    <Text style={styles.actionBtnText}>Send Heartbeat 💓</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('Photos')}>
+                    <Text style={styles.actionBtnText}>Photos</Text>
+                </TouchableOpacity>
             </View>
 
             <View style={styles.section}>
-                <Text style={styles.sectionTitle}>My Latest Mood</Text>
+                <Text style={styles.sectionTitle}>My Latest Entry</Text>
                 {myEntries.length > 0 ? (
                      <Text>Mood: {myEntries[myEntries.length-1].mood} - {myEntries[myEntries.length-1].text}</Text>
                 ) : <Text>No entries yet.</Text>}
@@ -118,4 +245,131 @@ const styles = StyleSheet.create({
     actions: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 20 },
     section: { marginBottom: 20, padding: 15, backgroundColor: '#fff', borderRadius: 10, elevation: 2 },
     sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
+
+    // Dopaminergic Styles
+    dopamineHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: '#f0f4f8',
+        padding: 20,
+        borderRadius: 20,
+        marginBottom: 25,
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+    },
+    partnerAvatarContainer: {
+        alignItems: 'center',
+    },
+    partnerText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#555',
+        marginBottom: 10,
+    },
+    noMoodText: {
+        fontSize: 12,
+        color: '#888',
+        fontStyle: 'italic',
+        marginTop: 5,
+    },
+    sparkBanner: {
+        backgroundColor: '#ffd700',
+        padding: 15,
+        borderRadius: 15,
+        marginBottom: 20,
+        alignItems: 'center',
+    },
+    sparkText: {
+        fontWeight: 'bold',
+        color: '#333',
+        marginBottom: 10,
+    },
+    sparkButton: {
+        backgroundColor: '#ff4500',
+        paddingVertical: 8,
+        paddingHorizontal: 15,
+        borderRadius: 20,
+        marginVertical: 5,
+    },
+    sparkButtonText: {
+        color: 'white',
+        fontWeight: 'bold',
+    },
+    actionBtn: {
+        backgroundColor: '#007bff',
+        padding: 12,
+        borderRadius: 10,
+        flex: 1,
+        marginHorizontal: 5,
+        alignItems: 'center',
+    },
+    heartbeatBtn: {
+        backgroundColor: '#ff1493',
+    },
+    actionBtnText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 12,
+    },
+    streakContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.8)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    polaroidContainer: {
+        backgroundColor: 'white',
+        borderRadius: 15,
+        padding: 20,
+        alignItems: 'center',
+        width: '100%',
+        elevation: 10,
+    },
+    polaroidTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 15,
+    },
+    polaroidImage: {
+        width: 300,
+        height: 300,
+        resizeMode: 'cover',
+        borderRadius: 10,
+        backgroundColor: '#eee',
+        marginBottom: 15,
+    },
+    polaroidDesc: {
+        textAlign: 'center',
+        color: '#666',
+        marginBottom: 20,
+    },
+    polaroidCloseBtn: {
+        backgroundColor: '#ff4500',
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: 25,
+    },
+    polaroidCloseText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+    streakEmoji: {
+        fontSize: 32,
+    },
+    streakText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#ff4500',
+        marginTop: 4,
+    },
 });

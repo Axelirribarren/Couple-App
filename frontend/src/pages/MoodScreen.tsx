@@ -3,6 +3,7 @@ import { View, TextInput, Button, StyleSheet, Alert, Text } from 'react-native';
 import api from '../services/api';
 import MoodSelector from '../components/MoodSelector';
 import { useAuth } from '../context/AuthContext';
+import { syncManager } from '../services/syncManager';
 
 export default function MoodScreen({ navigation }: any) {
     const { user, setUser } = useAuth();
@@ -12,10 +13,13 @@ export default function MoodScreen({ navigation }: any) {
     const handleSubmit = async () => {
         try {
             await api.post('/entries/', { text, mood });
-            // Also update user mood status
+            // Also update user mood status via existing API
             const res = await api.put('/users/me/mood', { mood });
             await setUser(res.data);
             
+            // Sync it locally for Dopaminergic loop
+            await syncManager.updateLocalMood(mood);
+
             Alert.alert("Success", "Entry added & Mood updated!");
             navigation.goBack();
         } catch (e) {

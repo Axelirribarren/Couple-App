@@ -2,7 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from .database import engine, Base
-from .routes import auth, partner, entries, users, checkins, tests, timeline
+from .routes import auth, partner, entries, users, checkins, tests, timeline, dopaminergic
+from .models import spark
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -26,3 +27,4 @@ app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(checkins.router, prefix="/checkins", tags=["checkins"])
 app.include_router(tests.router, prefix="/tests", tags=["tests"])
 app.include_router(timeline.router, prefix="/timeline", tags=["timeline"])
+app.include_router(dopaminergic.router, prefix="/sync", tags=["sync"])
