@@ -1,62 +1,75 @@
-# 💑 Couple App: Conexión Digital Redefinida
+# 💑 Couple App: Dopaminergic & Local-First Connection
 
-> *La solución integral para la gestión de relaciones y contenido compartido, potenciada por tecnología de vanguardia.*
+> *A privacy-first, highly-engaging ecosystem designed to deeply connect partners without relying on traditional text messaging.*
 
-⚠️ **Estado del Proyecto**: En desarrollo activo de alto rendimiento 🚀
+⚠️ **Project Status**: Full MVP Implemented 🚀
 
-## 🌟 Visión General
+## 🌟 Vision & Architecture
 
-**Couple App** no es solo una aplicación; es un ecosistema digital diseñado para sincronizar experiencias. Utilizando una arquitectura **Client-Server** robusta, este proyecto fusiona un frontend reactivo de alta fidelidad con un backend escalable y seguro, ofreciendo una experiencia de usuario fluida y moderna.
+**Couple App** redefines digital intimacy. Instead of building another standard chat app, this platform focuses on a **"Dopaminergic Loop"** using gamification, psychology, and ephemeral connection methods (Snapchat-vibes).
 
-## 🛠️ Stack Tecnológico de Última Generación
+### 🔒 The "Local-First" Privacy Promise
+*Your memories do not belong to a corporation.*
+This application is strictly built on a **Local-First Architecture**.
+* All core data (photos, memories, journal entries) is stored locally on the device using encrypted `AsyncStorage` and `expo-file-system`.
+* The **FastAPI Backend** acts **ONLY** as a lightweight metadata synchronizer and a temporary relay for ephemeral messages. It does not permanently store your photos or chat history.
 
-Nuestro stack ha sido cuidadosamente seleccionado para garantizar escalabilidad, mantenibilidad y performance.
+## 🛠️ Technology Stack
 
-### 📱 Frontend (Mobile Experience)
-Construido para destacar en iOS y Android con una base de código unificada.
-*   **Core**: [React Native](https://reactnative.dev/) & [Expo](https://expo.dev/) (Performance nativa acelerada).
-*   **Lenguaje**: **TypeScript** (Tipado estático robusto para una arquitectura libre de errores).
-*   **Navegación**: React Navigation 6 (Transiciones fluidas y gestión de historial profesional).
-*   **Seguridad**: `expo-secure-store` (Almacenamiento encriptado de credenciales).
-*   **Estado & Datos**: Context API + Axios (Gestión de estado global y networking optimizado).
+*   **Frontend**: React Native & Expo (Performance, native hardware access).
+*   **State & Sync**: Custom `SyncManager` built on `AsyncStorage` + Axios.
+*   **UI/UX**: Reanimated, Moti (Smooth 60fps animations), Expo-Haptics.
+*   **Backend**: FastAPI 🚀 (High-speed ASGI Python server).
+*   **Database**: SQLAlchemy with SQLite (for lightweight metadata syncing).
+*   **Security**: JWT Authentication & Passlib/Bcrypt.
 
-### ⚡ Backend (API RESTful High-Speed)
-El motor que impulsa la lógica de negocio con velocidad y precisión.
-*   **Framework**: **FastAPI** 🚀 (Uno de los frameworks de Python más rápidos disponibles).
-*   **ORM**: SQLAlchemy (Mapeo Objeto-Relacional potente y flexible).
-*   **Validación**: Pydantic (Validación de datos y serialización estricta).
-*   **Seguridad**: Autenticación JWT (JSON Web Tokens) & Hashing de contraseñas con Passlib/Bcrypt.
-*   **Servidor**: Uvicorn (Servidor ASGI de alto rendimiento).
+## ✨ Core Features (The Dopamine Loop)
 
-## ✨ Funcionalidades "Flagship"
+### 1. 🔄 Connection Streak & Relationship Tamagotchi
+*   **Shared Streak:** Connect daily to keep the streak alive. If one misses a day, the streak breaks for both.
+*   **Our Tree 🌳:** A dynamic Tamagotchi-style visualizer on the Home screen that grows from a seedling (🌱) to a blooming tree (🌺🌳🌺) as your streak increases.
 
-### 🔐 Sistema de Autenticación Seguro
-Implementación de protocolos de seguridad industriales.
-*   **Login & Registro**: Flujos validados con feedback visual inmediato.
-*   **Persistencia de Sesión**: Renovación y almacenamiento seguro de tokens de acceso, garantizando que el usuario permanezca conectado de forma segura.
+### 2. 🌟 Mood Sync & Visual Auras
+*   **Dynamic Avatars:** Choose your spirit animal (Owl 🦉 or Alien 👽).
+*   **Glowing Aura:** Your partner's avatar glows with a specific color representing their real-time mood (1-5 scale). It's an instant visual pulse-check without needing to ask "how are you?".
 
-### 🎭 Personalización de Identidad & Mood Tracking
-Un módulo interactivo y visualmente rico que redefine la expresión personal.
-*   **Selector de Avatar Persistente**: Elección entre arquetipos visuales (🦉 Owl o 👽 Alien) que define la identidad visual del usuario en la app.
-*   **Escala de Mood Dinámica**: Interfaz intuitiva para registrar el estado de ánimo (del 1 al 5), actualizando dinámicamente el avatar en la UI para reflejar la emoción actual.
+### 3. ⚡ Ephemeral Sparks (Snapchat-style)
+*   **Haptic Heartbeats 💓:** Send a physical vibration to your partner's phone.
+*   **Mystery Polaroids 📸:** Send a fragmented/blurred snapshot that disappears forever once closed.
+*   **Secret Signal:** A hidden, invisible button on the home screen. Tap it 3 times to send a completely silent haptic pulse to your partner—perfect for undercover communication during meetings.
 
-### 📰 Módulo de Contenido & Noticias
-Infraestructura preparada para la gestión de información.
-*   Diseñado para soportar la visualización de artículos y actualizaciones importantes dentro de la plataforma.
+### 4. ⏳ Time Capsules
+*   Record a message today that automatically locks itself and cannot be opened by your partner until the following day.
 
-## 🚀 Próximos Pasos (Roadmap)
+### 5. 😇 Emotional Debt Thermometer (Karma)
+*   Track the nice things your partner does for you (e.g., "Brought me coffee ☕"). Acknowledging their effort increases their "Karma" score on the server, gamifying appreciation.
 
-Estamos en constante evolución. Lo que se viene:
-*   [ ] **Real-time Sync**: WebSockets para mensajería instantánea.
-*   [ ] **Push Notifications**: Alertas inteligentes y personalizadas.
-*   [ ] **Media Gallery**: Compartición segura de fotos y recuerdos.
+### 6. 🤝 Shake to Connect
+*   Using device accelerometers, if both partners shake their phones at the same time (within a 30-second window), the app detects the physical synchrony and fires a visual and haptic reward.
+
+### 7. 🍿 Movie Mode
+*   A distraction-free dark UI mode. When watching a movie together (physically or remotely), you can send ephemeral "whispers" that completely wipe from memory the moment you exit the mode.
+
+### 8. ✈️ Long Distance (LDR) Mode
+*   Toggle this mode to activate a massive countdown timer until the day you reunite. It also includes a live, ticking clock synced to your partner's exact timezone offset.
+
+### 9. 📖 Asymmetric Shared Journal
+*   A daily prompt (e.g., "What made you smile today?"). You cannot see your partner's answer until you submit yours. The anticipation creates a powerful psychological pull.
+
+### 10. 📸 Stolen Moments (Private Camera)
+*   A lightning-fast camera shortcut that bypasses your public phone gallery. Photos and GPS metadata are saved exclusively to the app's hidden local storage to build a private, chronological documentary of your relationship.
+
+### 11. 🎲 Random Plan Generator
+*   A zero-friction "Date Night" button that suggests random offline activities to eliminate the "What do you want to do?" debate.
+
+### 12. 💙 Passive Conflict Predictor
+*   The `SyncManager` analyzes both moods. If both partners log a low mood (<= 2) simultaneously, a gentle, proactive banner appears suggesting a quiet chat to decompress.
 
 ---
 
-### 📂 Estructura del Proyecto
-
-*   `/frontend`: La aplicación cliente React Native/Expo.
-*   `/backend`: La API server FastAPI.
+### 📂 Project Structure
+*   `/frontend`: The React Native/Expo client application.
+*   `/backend`: The FastAPI server.
 
 ---
-*Desarrollado por Axel Irribarren.*
+*Developed by Axel Irribarren. Enhanced for Dopaminergic Local-First Connections.*
