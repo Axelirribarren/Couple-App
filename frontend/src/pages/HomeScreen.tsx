@@ -613,13 +613,10 @@ export default function HomeScreen({ navigation }: any) {
             </TouchableOpacity>
 
             <View style={styles.karmaActionSection}>
-                <Text style={styles.karmaSectionTitle}>Termómetro Emocional</Text>
-                <View style={styles.karmaButtons}>
-                    <TouchableOpacity style={styles.karmaBtn} onPress={() => setIsKarmaModalVisible(true)}>
-                        <Text style={styles.karmaBtnText}>Record a favor they did 💖</Text>
-                    </TouchableOpacity>
-                    <Text style={styles.myKarmaText}>My Karma: {syncData?.karma_score || 0}</Text>
-                </View>
+                <Text style={styles.myKarmaText}>My Karma: {syncData?.karma_score || 0}</Text>
+                <TouchableOpacity style={styles.karmaBtn} onPress={() => setIsKarmaModalVisible(true)}>
+                    <Text style={styles.karmaBtnText}>Record a favor 💖</Text>
+                </TouchableOpacity>
             </View>
 
             <KarmaModal
@@ -630,35 +627,47 @@ export default function HomeScreen({ navigation }: any) {
                 onSave={handleRecordFavor}
             />
 
-            <View style={styles.actions}>
-                <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('Mood')}>
-                    <Text style={styles.actionBtnText}>Mood</Text>
+            {/* Minimal Action Grid */}
+            <View style={styles.actionsGrid}>
+                {/* Primary Action */}
+                <TouchableOpacity style={[styles.actionCard, styles.pulseCard]} onPress={sendHapticHeartbeat}>
+                    <Text style={styles.actionCardIcon}>💓</Text>
+                    <Text style={[styles.actionCardText, styles.pulseText]}>Send Pulse</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.actionBtn, styles.heartbeatBtn]} onPress={sendHapticHeartbeat}>
-                    <Text style={styles.actionBtnText}>Pulse 💓</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.actionBtn, {backgroundColor: '#3cb371'}]} onPress={() => navigation.navigate('StolenMoments')}>
-                    <Text style={styles.actionBtnText}>Moments 📸</Text>
-                </TouchableOpacity>
-            </View>
-            <View style={[styles.actions, { marginTop: -10 }]}>
-                <TouchableOpacity style={[styles.actionBtn, {backgroundColor: '#8a2be2'}]} onPress={() => setIsCapsuleModalVisible(true)}>
-                    <Text style={styles.actionBtnText}>Capsule ⏳</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.actionBtn, {backgroundColor: '#ff8c00'}]} onPress={() => navigation.navigate('FirstTimes')}>
-                    <Text style={styles.actionBtnText}>Firsts 🌟</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.actionBtn, {backgroundColor: '#20b2aa'}]} onPress={generateRandomPlan}>
-                    <Text style={styles.actionBtnText}>Plan 🎲</Text>
-                </TouchableOpacity>
-            </View>
 
-            <View style={[styles.actions, { marginTop: -10 }]}>
-                <TouchableOpacity style={[styles.actionBtn, {backgroundColor: '#2b2b2b'}]} onPress={() => setIsMovieModeActive(true)}>
-                    <Text style={styles.actionBtnText}>Movie Mode 🍿</Text>
+                <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Mood')}>
+                    <Text style={styles.actionCardIcon}>🎭</Text>
+                    <Text style={styles.actionCardText}>Update Mood</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.actionBtn, {backgroundColor: isLongDistanceMode ? '#ff4500' : '#888'}]} onPress={() => setIsReunionModalVisible(true)}>
-                    <Text style={styles.actionBtnText}>{isLongDistanceMode ? 'LDR Active ✈️' : 'LDR Mode ✈️'}</Text>
+
+                <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('StolenMoments')}>
+                    <Text style={styles.actionCardIcon}>📸</Text>
+                    <Text style={styles.actionCardText}>Moments</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.actionCard} onPress={() => setIsCapsuleModalVisible(true)}>
+                    <Text style={styles.actionCardIcon}>⏳</Text>
+                    <Text style={styles.actionCardText}>Time Capsule</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('FirstTimes')}>
+                    <Text style={styles.actionCardIcon}>🌟</Text>
+                    <Text style={styles.actionCardText}>First Times</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.actionCard} onPress={generateRandomPlan}>
+                    <Text style={styles.actionCardIcon}>🎲</Text>
+                    <Text style={styles.actionCardText}>Random Plan</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.actionCard} onPress={() => setIsMovieModeActive(true)}>
+                    <Text style={styles.actionCardIcon}>🍿</Text>
+                    <Text style={styles.actionCardText}>Movie Mode</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={[styles.actionCard, isLongDistanceMode && { borderColor: COLORS.accentCalm, borderWidth: 2 }]} onPress={() => setIsReunionModalVisible(true)}>
+                    <Text style={styles.actionCardIcon}>✈️</Text>
+                    <Text style={styles.actionCardText}>{isLongDistanceMode ? 'LDR Active' : 'LDR Mode'}</Text>
                 </TouchableOpacity>
             </View>
 
@@ -707,32 +716,43 @@ export default function HomeScreen({ navigation }: any) {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, padding: 20, justifyContent: 'center' },
-    scrollContainer: { padding: 20 },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-    title: { fontSize: 24, fontWeight: 'bold' },
-    subtitle: { fontSize: 16, marginBottom: 20, textAlign: 'center' },
-    card: { backgroundColor: '#f9f9f9', padding: 15, borderRadius: 10, marginBottom: 20 },
-    input: { borderWidth: 1, borderColor: '#ccc', padding: 8, marginVertical: 10, borderRadius: 5 },
-    actions: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 20 },
-    section: { marginBottom: 20, padding: 15, backgroundColor: '#fff', borderRadius: 10, elevation: 2 },
-    sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
+const COLORS = {
+    background: '#FAF9F6', // Cozy off-white
+    surface: '#FFFFFF', // Pure white for cards
+    textPrimary: '#2C3E50', // Slate blue/gray
+    textSecondary: '#7F8C8D', // Soft gray
+    accentWarm: '#E27D60', // Terracotta/warm peach (for buttons, sparks)
+    accentNature: '#85AC8A', // Sage green (for plant, positive feedback)
+    accentCalm: '#C0D6DF', // Soft blue/gray (for LDR, neutral banners)
+    border: '#EEEEEE',
+};
 
-    // Dopaminergic Styles
+const styles = StyleSheet.create({
+    container: { flex: 1, padding: 20, justifyContent: 'center', backgroundColor: COLORS.background },
+    scrollContainer: { padding: 24, backgroundColor: COLORS.background, flexGrow: 1 },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30, marginTop: 10 },
+    title: { fontSize: 26, fontWeight: '700', color: COLORS.textPrimary, letterSpacing: -0.5 },
+    subtitle: { fontSize: 16, marginBottom: 20, textAlign: 'center', color: COLORS.textSecondary },
+    card: { backgroundColor: COLORS.surface, padding: 20, borderRadius: 16, marginBottom: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
+    input: { borderWidth: 1, borderColor: COLORS.border, padding: 12, marginVertical: 10, borderRadius: 12, backgroundColor: '#FAFAFA', color: COLORS.textPrimary },
+
+    section: { marginBottom: 30 },
+    sectionTitle: { fontSize: 18, fontWeight: '600', marginBottom: 15, color: COLORS.textPrimary, letterSpacing: -0.3 },
+
+    // Dopaminergic Header
     dopamineHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: '#f0f4f8',
-        padding: 20,
-        borderRadius: 20,
-        marginBottom: 25,
-        elevation: 3,
+        backgroundColor: COLORS.surface,
+        padding: 24,
+        borderRadius: 24,
+        marginBottom: 30,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.06,
+        shadowRadius: 16,
+        elevation: 4,
     },
     partnerAvatarContainer: {
         alignItems: 'center',
@@ -750,193 +770,141 @@ const styles = StyleSheet.create({
         marginTop: 5,
     },
     karmaBadge: {
-        marginTop: 5,
-        backgroundColor: '#e6e6fa',
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 10,
+        marginTop: 10,
+        backgroundColor: `${COLORS.accentWarm}15`, // 15% opacity hex
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
     },
     karmaText: {
-        fontSize: 10,
-        fontWeight: 'bold',
-        color: '#4b0082',
-    },
-    karmaActionSection: {
-        backgroundColor: '#fff',
-        padding: 15,
-        borderRadius: 15,
-        marginBottom: 20,
-        elevation: 2,
-    },
-    karmaSectionTitle: {
-        fontWeight: 'bold',
-        marginBottom: 10,
-        color: '#333',
-    },
-    karmaButtons: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    karmaBtn: {
-        backgroundColor: '#ff69b4',
-        paddingVertical: 8,
-        paddingHorizontal: 15,
-        borderRadius: 20,
-    },
-    karmaBtnText: {
-        color: 'white',
-        fontWeight: 'bold',
-    },
-    myKarmaText: {
-        fontWeight: 'bold',
-        color: '#555',
-    },
-    sparkBanner: {
-        backgroundColor: '#ffd700',
-        padding: 15,
-        borderRadius: 15,
-        marginBottom: 20,
-        alignItems: 'center',
-    },
-    conflictBanner: {
-        backgroundColor: '#e0f7fa',
-        borderColor: '#b2ebf2',
-        borderWidth: 1,
-        padding: 15,
-        borderRadius: 15,
-        marginBottom: 20,
-    },
-    conflictText: {
-        color: '#006064',
-        textAlign: 'center',
-        fontStyle: 'italic',
-        fontWeight: '500',
-    },
-    ldrBanner: {
-        backgroundColor: '#ff4500',
-        padding: 20,
-        borderRadius: 15,
-        marginBottom: 20,
-        alignItems: 'center',
-        elevation: 4,
-    },
-    ldrTitle: {
-        color: 'white',
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
-    ldrCountdown: {
-        color: 'white',
-        fontSize: 36,
-        fontWeight: '900',
-        marginTop: 5,
-    },
-    tamagotchiContainer: {
-        backgroundColor: '#e8f5e9',
-        padding: 20,
-        borderRadius: 20,
-        alignItems: 'center',
-        marginBottom: 20,
-        elevation: 2,
-    },
-    tamagotchiTitle: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#2e7d32',
-        marginBottom: 10,
-    },
-    tamagotchiEmoji: {
-        fontSize: 60,
-        marginBottom: 10,
-    },
-    tamagotchiSub: {
         fontSize: 12,
-        color: '#4caf50',
-        fontStyle: 'italic',
-        textAlign: 'center',
+        fontWeight: '700',
+        color: COLORS.accentWarm,
     },
-    journalBanner: {
-        backgroundColor: '#f5f5f5',
-        padding: 15,
-        borderRadius: 15,
-        marginBottom: 20,
-        elevation: 2,
-    },
-    journalTitle: {
-        fontWeight: 'bold',
-        fontSize: 16,
-        color: '#4b0082',
-        marginBottom: 5,
-    },
-    journalPrompt: {
-        fontStyle: 'italic',
-        color: '#333',
-        marginBottom: 10,
-    },
-    journalBtn: {
-        backgroundColor: '#4b0082',
-        paddingVertical: 10,
-        borderRadius: 8,
-        alignItems: 'center',
-    },
-    journalBtnText: {
-        color: 'white',
-        fontWeight: 'bold',
-    },
-    journalWaiting: {
-        color: '#2e8b57',
-        fontWeight: 'bold',
-        fontStyle: 'italic',
-    },
-    journalLabel: {
-        fontWeight: 'bold',
-        marginTop: 10,
-        color: '#555',
-    },
-    journalAnswer: {
-        color: '#333',
-        paddingLeft: 10,
-        borderLeftWidth: 2,
-        borderColor: '#ccc',
-        marginTop: 5,
-    },
-    sparkText: {
-        fontWeight: 'bold',
-        color: '#333',
-        marginBottom: 10,
-    },
-    sparkButton: {
-        backgroundColor: '#ff4500',
-        paddingVertical: 8,
-        paddingHorizontal: 15,
-        borderRadius: 20,
-        marginVertical: 5,
-    },
-    sparkButtonText: {
-        color: 'white',
-        fontWeight: 'bold',
-    },
-    actionBtn: {
-        backgroundColor: '#007bff',
-        padding: 12,
-        borderRadius: 10,
-        flex: 1,
-        marginHorizontal: 5,
-        alignItems: 'center',
-    },
-    heartbeatBtn: {
-        backgroundColor: '#ff1493',
-    },
-    actionBtnText: {
-        color: 'white',
-        fontWeight: 'bold',
-        fontSize: 12,
-    },
+
+    // Streak Container
     streakContainer: {
         alignItems: 'center',
         justifyContent: 'center',
     },
+    streakEmoji: {
+        fontSize: 36,
+    },
+    streakText: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: COLORS.accentWarm,
+        marginTop: 6,
+    },
+
+    // Karma inline section
+    karmaActionSection: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: COLORS.surface,
+        padding: 20,
+        borderRadius: 20,
+        marginBottom: 30,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    karmaBtn: {
+        backgroundColor: `${COLORS.accentWarm}15`,
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 16,
+    },
+    karmaBtnText: {
+        color: COLORS.accentWarm,
+        fontWeight: '700',
+    },
+    myKarmaText: {
+        fontWeight: '600',
+        color: COLORS.textSecondary,
+        fontSize: 14,
+    },
+    // Cozy Banners
+    sparkBanner: {
+        backgroundColor: `${COLORS.accentWarm}10`,
+        borderColor: `${COLORS.accentWarm}30`,
+        borderWidth: 1,
+        padding: 20,
+        borderRadius: 20,
+        marginBottom: 30,
+        alignItems: 'center',
+    },
+    sparkText: {
+        fontWeight: '700',
+        color: COLORS.textPrimary,
+        marginBottom: 15,
+        fontSize: 16,
+    },
+    sparkButton: {
+        backgroundColor: COLORS.surface,
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: 20,
+        marginVertical: 6,
+        width: '100%',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 4,
+        elevation: 1,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    sparkButtonText: {
+        color: COLORS.accentWarm,
+        fontWeight: '700',
+        fontSize: 15,
+    },
+
+    conflictBanner: {
+        backgroundColor: `${COLORS.accentCalm}20`,
+        padding: 20,
+        borderRadius: 20,
+        marginBottom: 30,
+        borderWidth: 1,
+        borderColor: `${COLORS.accentCalm}50`,
+    },
+    conflictText: {
+        color: '#5D6D7E',
+        textAlign: 'center',
+        lineHeight: 22,
+        fontSize: 15,
+    },
+
+    ldrBanner: {
+        backgroundColor: COLORS.accentCalm,
+        padding: 24,
+        borderRadius: 24,
+        marginBottom: 30,
+        alignItems: 'center',
+        shadowColor: COLORS.textPrimary,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
+        elevation: 5,
+    },
+    ldrTitle: {
+        color: COLORS.textPrimary,
+        fontWeight: '700',
+        fontSize: 15,
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+    },
+    ldrCountdown: {
+        color: COLORS.textPrimary,
+        fontSize: 48,
+        fontWeight: '800',
+        marginTop: 5,
+        letterSpacing: -2,
+    },
+
+    // Modal common styles
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.8)',
@@ -946,40 +914,165 @@ const styles = StyleSheet.create({
     },
     polaroidContainer: {
         backgroundColor: 'white',
-        borderRadius: 15,
-        padding: 20,
+        borderRadius: 24,
+        padding: 30,
         alignItems: 'center',
-        width: '100%',
+        width: '90%',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
         elevation: 10,
     },
     polaroidTitle: {
         fontSize: 20,
-        fontWeight: 'bold',
+        fontWeight: '700',
         marginBottom: 15,
+        color: COLORS.textPrimary,
     },
     polaroidDesc: {
         textAlign: 'center',
-        color: '#666',
+        color: COLORS.textSecondary,
         marginBottom: 20,
     },
     polaroidCloseBtn: {
-        backgroundColor: '#ff4500',
-        paddingVertical: 12,
-        paddingHorizontal: 20,
+        backgroundColor: COLORS.accentWarm,
+        paddingVertical: 14,
+        paddingHorizontal: 24,
         borderRadius: 25,
+        marginTop: 10,
     },
     polaroidCloseText: {
         color: 'white',
-        fontWeight: 'bold',
-        fontSize: 16,
+        fontWeight: '700',
+        fontSize: 15,
     },
-    streakEmoji: {
-        fontSize: 32,
+
+    // Tamagotchi
+    tamagotchiContainer: {
+        alignItems: 'center',
+        marginBottom: 30,
+        paddingVertical: 10,
     },
-    streakText: {
+    tamagotchiTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: COLORS.textSecondary,
+        marginBottom: 10,
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+    },
+    tamagotchiEmoji: {
+        fontSize: 70,
+        marginBottom: 15,
+    },
+    tamagotchiSub: {
+        fontSize: 14,
+        color: COLORS.accentNature,
+        fontStyle: 'italic',
+        textAlign: 'center',
+    },
+
+    // Asymmetric Journal
+    journalBanner: {
+        backgroundColor: COLORS.surface,
+        padding: 24,
+        borderRadius: 24,
+        marginBottom: 30,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.04,
+        shadowRadius: 12,
+        elevation: 2,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    journalTitle: {
+        fontWeight: '700',
+        fontSize: 15,
+        color: COLORS.textSecondary,
+        marginBottom: 8,
+        letterSpacing: 0.5,
+        textTransform: 'uppercase',
+    },
+    journalPrompt: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: COLORS.textPrimary,
+        marginBottom: 20,
+        lineHeight: 24,
+    },
+    journalBtn: {
+        backgroundColor: COLORS.accentNature,
+        paddingVertical: 14,
+        borderRadius: 16,
+        alignItems: 'center',
+    },
+    journalBtnText: {
+        color: 'white',
+        fontWeight: '700',
+        fontSize: 15,
+    },
+    journalWaiting: {
+        color: COLORS.accentNature,
+        fontWeight: '600',
+        fontStyle: 'italic',
+        textAlign: 'center',
+        marginTop: 10,
+    },
+    journalLabel: {
+        fontWeight: '700',
+        marginTop: 15,
+        color: COLORS.textSecondary,
+        fontSize: 12,
+        textTransform: 'uppercase',
+    },
+    journalAnswer: {
+        color: COLORS.textPrimary,
         fontSize: 16,
-        fontWeight: 'bold',
-        color: '#ff4500',
-        marginTop: 4,
+        lineHeight: 24,
+        paddingLeft: 12,
+        borderLeftWidth: 3,
+        borderColor: `${COLORS.accentNature}50`,
+        marginTop: 8,
+    },
+
+    // Minimal Action Grid
+    actionsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        marginBottom: 30,
+    },
+    actionCard: {
+        backgroundColor: COLORS.surface,
+        width: '48%', // Two columns
+        paddingVertical: 20,
+        borderRadius: 20,
+        marginBottom: 15,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.03,
+        shadowRadius: 8,
+        elevation: 1,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    actionCardIcon: {
+        fontSize: 28,
+        marginBottom: 10,
+    },
+    actionCardText: {
+        color: COLORS.textPrimary,
+        fontWeight: '600',
+        fontSize: 14,
+    },
+    pulseCard: {
+        backgroundColor: COLORS.accentWarm,
+        borderColor: COLORS.accentWarm,
+    },
+    pulseText: {
+        color: 'white',
     },
 });

@@ -15,17 +15,22 @@ const TimeCapsuleModal = memo(({ visible, inputText, setInputText, onClose, onSe
             <View style={styles.modalOverlay}>
                 <View style={styles.polaroidContainer}>
                     <Text style={styles.polaroidTitle}>Time Capsule ⏳</Text>
-                    <Text style={{marginBottom: 10, color: '#666'}}>Write a message for your partner. It will unlock tomorrow.</Text>
+                    <Text style={{marginBottom: 20, color: '#7F8C8D', textAlign: 'center'}}>Write a message for your partner. It will unlock tomorrow.</Text>
                     <TextInput
                         style={[styles.input, { width: '100%', height: 100, textAlignVertical: 'top' }]}
                         multiline
                         placeholder="I hope you're having a great day..."
+                        placeholderTextColor="#BDC3C7"
                         value={inputText}
                         onChangeText={setInputText}
                     />
-                    <View style={{flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginTop: 10}}>
-                        <Button title="Cancel" color="#888" onPress={onClose} />
-                        <Button title="Send" color="#8a2be2" onPress={onSend} />
+                    <View style={{flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 10}}>
+                        <View style={{flex: 1, marginHorizontal: 5}}>
+                            <Button title="Cancel" color="#7F8C8D" onPress={onClose} />
+                        </View>
+                        <View style={{flex: 1, marginHorizontal: 5}}>
+                            <Button title="Send" color="#E27D60" onPress={onSend} />
+                        </View>
                     </View>
                 </View>
             </View>
@@ -43,10 +48,14 @@ const styles = StyleSheet.create({
     },
     polaroidContainer: {
         backgroundColor: 'white',
-        borderRadius: 15,
-        padding: 20,
+        borderRadius: 24,
+        padding: 30,
         alignItems: 'center',
-        width: '100%',
+        width: '90%',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
         elevation: 10,
     },
     polaroidTitle: {
@@ -56,10 +65,11 @@ const styles = StyleSheet.create({
     },
     input: {
         borderWidth: 1,
-        borderColor: '#ccc',
-        padding: 8,
-        borderRadius: 5,
-        backgroundColor: '#f9f9f9',
+        borderColor: '#EEEEEE',
+        padding: 16,
+        borderRadius: 12,
+        backgroundColor: '#FAFAFA',
+        color: '#2C3E50',
     },
 });
 

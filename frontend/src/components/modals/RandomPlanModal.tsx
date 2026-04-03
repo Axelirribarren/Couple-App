@@ -13,10 +13,14 @@ const RandomPlanModal = memo(({ plan, onReroll, onClose }: RandomPlanModalProps)
             <View style={styles.modalOverlay}>
                 <View style={styles.polaroidContainer}>
                     <Text style={styles.polaroidTitle}>Random Plan 🎲</Text>
-                    <Text style={[styles.polaroidDesc, { fontSize: 18, color: '#333', marginVertical: 20 }]}>{plan}</Text>
-                    <View style={{flexDirection: 'row', justifyContent: 'space-between', width: '100%'}}>
-                        <Button title="Reroll 🎲" color="#888" onPress={onReroll} />
-                        <Button title="Awesome!" color="#3cb371" onPress={onClose} />
+                    <Text style={[styles.polaroidDesc, { fontSize: 18, color: '#2C3E50', marginVertical: 20, fontWeight: '600' }]}>{plan}</Text>
+                    <View style={{flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 10}}>
+                        <View style={{flex: 1, marginHorizontal: 5}}>
+                            <Button title="Reroll" color="#7F8C8D" onPress={onReroll} />
+                        </View>
+                        <View style={{flex: 1, marginHorizontal: 5}}>
+                            <Button title="Awesome!" color="#85AC8A" onPress={onClose} />
+                        </View>
                     </View>
                 </View>
             </View>
@@ -34,10 +38,14 @@ const styles = StyleSheet.create({
     },
     polaroidContainer: {
         backgroundColor: 'white',
-        borderRadius: 15,
-        padding: 20,
+        borderRadius: 24,
+        padding: 30,
         alignItems: 'center',
-        width: '100%',
+        width: '90%',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
         elevation: 10,
     },
     polaroidTitle: {
